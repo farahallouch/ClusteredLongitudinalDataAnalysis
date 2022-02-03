@@ -25,7 +25,7 @@ dat <- read.csv("hw01.csv")
 
 # Question 1
 ## Question 1 (a)
-```{r}
+```{r, echo = TRUE}
 dat_long <- reshape(dat,
                     direction = "long",
                     varying = 3:8,
@@ -38,7 +38,7 @@ kable(head(dat_long, 20),
 ```
 
 ## Question 1 (b)
-```{r}
+```{r, echo = TRUE}
 dat_wide <- reshape(dat_long,
                     direction = "wide",
                     v.names = "PHQ",
@@ -239,13 +239,13 @@ mean_sd(dat_t$PHQ_12)
 
 ## Question 4 (b)
 ```{r}
-independent_lm <- lm(PHQ ~ Treatment,
+independent_lm <- lm(PHQ ~ Treatment + time,
                      data = dat_long)
 
 summary(independent_lm)
 ```
 
-Using a linear regression model with treatment as the predictor and PHQ as the outcome, assuming independence of outcomes, the coefficient estimate of treatment is -3.12, with a p-value < 0.001. This can be interpreted as, compared to the control group, treatment is associated with a -3.12 change in PHQ. The p-value of this estimate is less than our cutoff of 0.05, which gives us sufficient evidence to reject $H_0$, suggesting that treatment is significantly associated with PHQ.
+Using a linear regression model with treatment as the predictor and PHQ as the outcome, assuming independence of outcomes, the coefficient estimate of treatment is -3.52, with a p-value < 0.001. This can be interpreted as, holding all other covariates constant, compared to the control group, treatment is associated with a -3.12 change in PHQ. The p-value of this estimate is less than our cutoff of 0.05, which gives us sufficient evidence to reject $H_0$, suggesting that treatment is significantly associated with PHQ.
 
 ## Question 4 (c)
 ```{r}
@@ -256,7 +256,7 @@ visit6 <- independent_lm$residuals[dat_long$time == 6]
 visit9 <- independent_lm$residuals[dat_long$time == 9]
 visit12 <- independent_lm$residuals[dat_long$time == 12]
 
-#Copy the function panel.cor from the manual to add the correlation
+# Copy the function panel.cor from the manual to add the correlation
 # pairs(cbind(visit0, visit1, visit3, visit6, visit9, visit12),
 #       upper.panel = panel.cor)
 ```

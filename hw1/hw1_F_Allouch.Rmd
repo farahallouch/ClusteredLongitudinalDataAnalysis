@@ -237,7 +237,7 @@ mean_sd(dat_t$PHQ_12)
 
 ## Question 4 (b)
 ```{r}
-independent_lm <- lm(PHQ ~ Treatment + time,
+independent_lm <- lm(PHQ ~ as.factor(Treatment) + time,
                      data = dat_long)
 
 summary(independent_lm)
@@ -253,6 +253,18 @@ visit3 <- independent_lm$residuals[dat_long$time == 3]
 visit6 <- independent_lm$residuals[dat_long$time == 6]
 visit9 <- independent_lm$residuals[dat_long$time == 9]
 visit12 <- independent_lm$residuals[dat_long$time == 12]
+
+panel.cor <- function(x, y){
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  r <- round(cor(x, y), digits = 2)
+  txt <- paste0(r)
+  cex.cor <- 0.8/strwidth(txt)
+  text(0.5, 0.5, txt, cex = 5 * cex.cor * r)
+}
+
+pairs(cbind(visit0, visit1, visit3, visit6, visit9),
+      upper.panel = panel.cor)
 ```
 
-I spoke to Dr. Tang and wasn't able to complete this question in R. This is from the Linear Mixed-Effects Models Using R book in the subtext of the figure that Dr. Tang had in his lectures: "We do not present the syntax for constructing the figure, as it is fairly complex."
+I couldn't figure out why the residuals for time 9 had missings and the residuals for time 12 had all missing values.

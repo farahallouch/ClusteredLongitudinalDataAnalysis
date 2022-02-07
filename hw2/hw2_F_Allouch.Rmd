@@ -1,0 +1,57 @@
+---
+title: "Clustered & Longitudinal Data Analysis HW 2"
+author: "Farah Allouch"
+date: "`r format(Sys.time(), ' %B %d, %Y')`"
+output: 
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+rm(list = ls())
+options(scipen = 999)
+
+library(tidyverse)
+```
+
+\newpage
+
+# Question 1
+## Question 1 (a)
+```{r}
+dat <- data.frame(student = seq(1:10),
+                  math = c(93, 89, 96, 83, 80, 71, 96, 87, 77, 79),
+                  physics = c(94, 90, 92, 84, 74, 77, 93, 93, 75, 84),
+                  chemistry = c(97, 88, 97, 81, 81, 80, 92, 94, 74, 76))
+
+dat_long <- pivot_longer(data = dat,
+                         cols = c(math, physics, chemistry),
+                         names_to = "subject",
+                         values_to = "score")
+
+# Repeated measures ANOVA
+repeated_anova <- aov(score ~ as.factor(subject) + Error(student / as.factor(subject)),
+                      data = dat_long)
+
+summary(repeated_anova)
+```
+
+## Question 1 (b)
+```{r}
+# Multivariate ANOVA
+multivariate_anova <- manova(cbind(math, physics, chemistry) ~ student,
+                             data = dat)
+
+summary(multivariate_anova)
+```
+
+## Question 1 (c)
+Both repeated measures ANOVA and multivariate ANOVA produce p-values greater than our threshold of 0.05 (0.86 for repeated measures ANOVA and 0.34 for multivariate ANOVA). So, both tests do not give us sufficient evidence to reject $H_0$, which suggests that there are no differences on the student performance in the three subjects.
+
+WHICH ONE SHOULD WE USE? IS THERE A DIFFERENCE?
+
+\newpahe
+# Question 2
+$$$$

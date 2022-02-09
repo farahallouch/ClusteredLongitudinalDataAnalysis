@@ -21,7 +21,7 @@ library(tidyverse)
 # Question 1
 ## Question 1 (a)
 ```{r}
-dat <- data.frame(student = seq(1:10),
+dat <- data.frame(student = as.factor(seq(1:10)),
                   math = c(93, 89, 96, 83, 80, 71, 96, 87, 77, 79),
                   physics = c(94, 90, 92, 84, 74, 77, 93, 93, 75, 84),
                   chemistry = c(97, 88, 97, 81, 81, 80, 92, 94, 74, 76))
@@ -41,7 +41,7 @@ summary(repeated_anova)
 ## Question 1 (b)
 ```{r}
 # Multivariate ANOVA
-multivariate_anova <- manova(cbind(math, physics, chemistry) ~ student,
+multivariate_anova <- manova(cbind(math, physics, chemistry) ~ as.numeric(student), # doesn't work with as.factor(student)
                              data = dat)
 
 summary(multivariate_anova)
@@ -52,6 +52,27 @@ Both repeated measures ANOVA and multivariate ANOVA produce p-values greater tha
 
 WHICH ONE SHOULD WE USE? IS THERE A DIFFERENCE?
 
-\newpahe
-# Question 2
-$$$$
+\newpage
+# Question 2 
+## Question 2 (a)
+$$Y_{ij} = \mu + \mu_j + \epsilon_{ij}, \epsilon_i \sim N(0, \Sigma)$$
+
+where no assumptions assumed for $\Sigma$ since the repeated measures are treated as different variables.
+
+## Question 2 (b)
+
+## Question 2 (c)
+
+\newpage
+# Question 3
+$$Y_{ij} = \mu + \mu_j + \epsilon_{ij}, \epsilon_i \sim N(0, \Sigma)$$
+
+where 
+$$
+\Sigma = \sigma^2 \begin{bmatrix}
+1 & \rho & \rho & \rho \\
+\rho & 1 & \rho & \rho \\
+\rho & \rho & 1 & \rho \\
+\rho & \rho & \rho & 1
+\end{bmatrix}
+$$

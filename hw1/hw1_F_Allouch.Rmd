@@ -247,6 +247,7 @@ Using a linear regression model with treatment as the predictor and PHQ as the o
 
 ## Question 4 (c)
 ```{r}
+# residuals(independent_lm) should fix this
 visit0 <- independent_lm$residuals[dat_long$time == 0]
 visit1 <- independent_lm$residuals[dat_long$time == 1]
 visit3 <- independent_lm$residuals[dat_long$time == 3]

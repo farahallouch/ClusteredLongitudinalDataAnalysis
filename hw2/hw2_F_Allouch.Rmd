@@ -8,7 +8,8 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE)
 
 rm(list = ls())
 options(scipen = 999)
@@ -17,7 +18,6 @@ library(tidyverse)
 ```
 
 \newpage
-
 # Question 1
 ## Question 1 (a)
 ```{r}
@@ -38,34 +38,54 @@ repeated_anova <- aov(score ~ as.factor(subject) + Error(student / as.factor(sub
 summary(repeated_anova)
 ```
 
+The p-value from the test of repeated measures ANOVA gives a p-value of 0.81. This is substantially greater than our cutoff of 0.05, which does not give us sufficient evidence to reject $H_0$. This suggests that there are no differences on the student performance in the three subjects.
+
 ## Question 1 (b)
 ```{r}
 # Multivariate ANOVA
-multivariate_anova <- manova(cbind(math, physics, chemistry) ~ as.numeric(student), # doesn't work with as.factor(student)
+multivariate_anova <- manova(cbind(dat$physics - dat$chemistry, dat$physics - dat$math) ~ 1, 
                              data = dat)
 
-summary(multivariate_anova)
+summary(multivariate_anova, intercept = TRUE)
 ```
 
-## Question 1 (c)
-Both repeated measures ANOVA and multivariate ANOVA produce p-values greater than our threshold of 0.05 (0.86 for repeated measures ANOVA and 0.34 for multivariate ANOVA). So, both tests do not give us sufficient evidence to reject $H_0$, which suggests that there are no differences on the student performance in the three subjects.
+The p-value from the test of multivariate ANOVA gives a p-value of 0.84. This is substantially greater than our cutoff of 0.05, which does not give us sufficient evidence to reject $H_0$. This suggests that there are no differences on the student performance in the three subjects.
 
-WHICH ONE SHOULD WE USE? IS THERE A DIFFERENCE?
+## Question 1 (c)
+Both repeated measures ANOVA and multivariate ANOVA produce similar p-values which are greater than our threshold of 0.05 (0.81 for repeated measures ANOVA and 0.86 for multivariate ANOVA). So, both tests do not give us sufficient evidence to reject $H_0$, which suggests that there are no differences on the student performance in the three subjects.
+
+Both tests give similar results, which tells us that for this problem, they are basically equivalent.
 
 \newpage
 # Question 2 
 ## Question 2 (a)
-$$Y_{ij} = \mu + \mu_j + \epsilon_{ij}, \epsilon_i \sim N(0, \Sigma)$$
+$$Y_{ij} = r_i + \mu_j + \epsilon_{ij}, \epsilon_i \sim N(0, \sigma^2), r_i \sim N(0, \nu^2), r_i \bot \epsilon_i$$
 
-where no assumptions assumed for $\Sigma$ since the repeated measures are treated as different variables.
+where $\nu^2$ has an independent correlation structure (hence ignoring the random effects).
+
+and where no assumptions assumed for $\Sigma$ since the repeated measures are treated as different variables.
 
 ## Question 2 (b)
+```{r}
+mixed_model <- nlme::lme(score ~ subject,
+                         data = dat_long,
+                         random = ~ 1 | student)
+
+summary(mixed_model)
+
+anova(mixed_model)
+```
+
+Based on a linear mixed model with random intercept, the overall p-value for subject is 0.81, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that there are no differences across the 3 subject test scores. This is the exact same result I got in 1 (a), because the 2 approaches are equivalent.
 
 ## Question 2 (c)
+$$\text{ICC} = \frac{\widehat{\nu^2}}{\widehat{\nu^2} + \widehat{\sigma^2}} = \frac{\text{(SD of intercept)}^2}{\text{(SD of intercept)}^2 + \text{(SD of residuals)}^2} = \frac{(7.787454)^2}{(7.787454)^2 + (3.0786)^2} = 0.8648$$
 
 \newpage
 # Question 3
-$$Y_{ij} = \mu + \mu_j + \epsilon_{ij}, \epsilon_i \sim N(0, \Sigma)$$
+$$Y_{ij} = r_i + \mu_j + \epsilon_{ij}, \epsilon_i \sim N(0, \Sigma), r_i \sim N(0, \nu^2), r_i \bot \epsilon_i$$
+
+where $\nu^2$ has an independent correlation structure (hence ignoring the random effects).
 
 where 
 $$
@@ -76,3 +96,21 @@ $$
 \rho & \rho & \rho & 1
 \end{bmatrix}
 $$
+
+## Question 3 (a)
+```{r}
+library(nlme)
+
+mixed_model_2 <- gls(score ~ subject,
+                     data = dat_long,
+                     correlation = corSymm(form = ~ 1 | student))
+
+summary(mixed_model_2)
+
+anova(mixed_model_2)
+```
+
+Based on a linear fixed model with unstructured correlation matrix, the overall p-value for subject is 0.81, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that there are no differences across the 3 subject test scores. This is very similar to the result I got in 1 (b).
+
+## Question 3 (b)
+$\mu_{physics} = \text{intercept} + \beta_{physics} = 86.0 - 0.4 = 85.6$

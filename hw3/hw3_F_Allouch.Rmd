@@ -1,0 +1,131 @@
+---
+title: "Clustered & Longitudinal Data Analysis HW 3"
+author: "Farah Allouch"
+date: "`r format(Sys.time(), ' %B %d, %Y')`"
+output: 
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE)
+
+rm(list = ls())
+options(scipen = 999)
+
+library(tidyverse)
+```
+
+\newpage
+# Question 1
+## Question 1 (a)
+$$\text{HAMTTL}_i = \beta_0 + (\beta_1 \times \text{Gender}) + (\beta_2 \times \text{CIRSTTL}) + (\beta_3 \times \text{visit}_{12}) + (\beta_4 \times \text{visit}_{24}) + (\beta_5 \times \text{visit}_{36}) + \epsilon_{ij}, \epsilon_i \sim N(0, \Sigma^2)$$
+
+where 
+$$
+\text{cov}(Y) = \text{cov}(\alpha_i + \Sigma) = \text{cov}(\alpha_i) + \text{cov}(\Sigma) = \begin{bmatrix}
+\sigma^2 + \nu^2 & \nu^2 & \nu^2 & \nu^2 \\
+\nu^2 & \sigma^2 + \nu^2 & \nu^2 & \nu^2 \\
+\nu^2 & \nu^2 & \nu^2 + \sigma^2 & \nu^2 \\
+\nu^2 & \nu^2 & \nu^2 & \nu^2 + \sigma^2
+\end{bmatrix}
+$$
+
+Under this model, the covariance matrix does not change with subjects because we are assuming an independent covariance structure.
+
+## Question 1 (b)
+```{r}
+dat <- read.csv("v4c.csv")
+
+dat <- dat %>% 
+  mutate(VISIT = as.factor(VISIT),
+         GENDER = as.factor(GENDER))
+
+library(nlme)
+
+# need CS() structure
+random_int <- lme(HAMTTL ~ GENDER + CIRSTTL + VISIT,
+                  data = dat,
+                  random = ~ 1 | UNIT_ID)
+
+summary(random_int)
+```
+
+For the fixed effects, considering p = 0.05 as our threshold, there are significant fixed effects for gender (p = 0.0005) and cirsttl (p < 0.0001). This gives us sufficient evidence to reject $H_0$, which suggess that gender and cirsttl are associated with hamttl at the 5% significance level. 
+
+On the other hand, none of the visits had a p-value < 0.05.
+
+## Question 1 (c)
+```{r}
+# need to look at 1-2 and 1-3 then do contrast for 2-3
+anova(random_int)
+```
+
+The overall p-value associated with visit is 0.31, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that visit is not associated with hamttl. Additionally, it suggests that visits 12, 24, and 36 are not different from the baseline visit.
+
+```{r}
+broom::tidy(multcomp::glht(random_int, linfct = matrix(c(0, 0, 0, 1, 1, 1), 1)))
+```
+
+Additionally, comparing visits 12, 24, and 36 with each other, we obtain a p-value of 0.538, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that visits 12, 24, and 36 are also not different from each other.
+
+## Question 1 (d)
+$\widehat{\sigma^2} = \text{(SD of residual)}^2 = (3.424504)^2 = 11.73$
+
+$\widehat{\nu^2} = \text{(SD of intercept)}^2 = (4.035664)^2 = 16.29$
+
+\newpage
+# Question 2
+## Question 2 (a)
+$$\text{HAMTTL}_i = \beta_0 + (\beta_1 \times \text{Gender}) + (\beta_2 \times \text{CIRSTTL}) + (\beta_3 \times \text{visit}_{12}) + (\beta_4 \times \text{visit}_{24}) + (\beta_5 \times \text{visit}_{36}) + r_i + \epsilon_{ij}, \epsilon_i \sim N(\Sigma)$$
+
+where 
+$$
+\text{cov}(Y) = \text{cov}(\alpha_i + b_i + \Sigma) = \text{cov}(\alpha_i) + \text{cov}(\Sigma) = \begin{bmatrix}
+\sigma^2 + \nu^2 + \mu^2 & \nu^2 + \mu^2 & \nu^2 + \mu^2 & \nu^2 + \mu^2 \\
+\nu^2 + \mu^2 & \sigma^2 + \nu^2 + \mu^2 & \nu^2 + \mu^2 & \nu^2 + \mu^2 \\
+\nu^2 + \mu^2 & \nu^2 + \mu^2 & \nu^2 + \sigma^2 + \mu^2 & \nu^2 + \mu^2 \\
+\nu^2 + \mu^2 & \nu^2 + \mu^2 & \nu^2 + \mu^2 & \nu^2 + \sigma^2 + \mu^2
+\end{bmatrix}
+$$
+
+Under this model, the covariance matrix does not change with subjects because we are assuming an independent covariance structure.
+
+In this case, covariance matrix changes with the subjects because we are considering random effects.
+
+## Question 2 (b)
+```{r}
+# needs to be independent 
+random_slope <- lme(HAMTTL ~ GENDER + CIRSTTL + VISIT,
+                  data = dat,
+                  random = ~ 1 + CIRSTTL | UNIT_ID)
+
+summary(random_slope)
+```
+
+$\widehat{\sigma^2} = \text{(SD of residual)}^2 = (1.912371)^2 = 3.66$
+
+$\widehat{\nu^2} = \text{(SD of intercept)}^2 = (4.762685)^2 = 22.68$
+
+
+## Question 2 (c)
+Do LRT for random_int and random_slope
+
+## Question 2 (d)
+Fixed effects only
+
+\newpage
+# Question 3
+## Question 3 (a)
+Similar to 2(a) but add tau
+this is the default structure of random_slope
+
+## Question 3 (b)
+this is fine
+
+## Question 3 (c)
+??
+
+## Question 3 (d)
+??

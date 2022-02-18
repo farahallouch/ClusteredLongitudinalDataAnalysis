@@ -32,7 +32,7 @@ $$
 \end{bmatrix}
 $$
 
-Under this model, the covariance matrix does not change with subjects because we are assuming an independent covariance structure.
+Under this model, the covariance matrix does not change with subjects.
 
 ## Question 1 (b)
 ```{r}
@@ -52,28 +52,31 @@ random_int <- lme(HAMTTL ~ GENDER + CIRSTTL + VISIT,
 summary(random_int)
 ```
 
-For the fixed effects, considering p = 0.05 as our threshold, there are significant fixed effects for gender (p = 0.0005) and cirsttl (p < 0.0001). This gives us sufficient evidence to reject $H_0$, which suggess that gender and cirsttl are associated with hamttl at the 5% significance level. 
-
-On the other hand, none of the visits had a p-value < 0.05.
+For the fixed effects, considering p = 0.05 as our threshold, there are significant fixed effects for gender (p = 0.0005) and cirsttl (p < 0.0001). This gives us sufficient evidence to reject $H_0$, which suggests that gender and cirsttl are associated with hamttl at the 5% significance level. 
 
 ## Question 1 (c)
 ```{r}
-# need to look at 1-2 and 1-3 then do contrast for 2-3
-anova(random_int)
+summary(random_int)
 ```
 
-The overall p-value associated with visit is 0.31, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that visit is not associated with hamttl. Additionally, it suggests that visits 12, 24, and 36 are not different from the baseline visit.
+Since the first visit is our reference group, $\beta_{visit_{12}}$ and $\beta_{visit_{24}}$ and their p-values are comparing visit 12 and 24 to the first visit. The p-values for these $\beta \text{s}$ are 0.661 and 0.209, which are both greater than our threshold of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests there are no significant differences between the first and second visit and the first and third visit.
 
 ```{r}
-broom::tidy(multcomp::glht(random_int, linfct = matrix(c(0, 0, 0, 1, 1, 1), 1)))
+broom::tidy(multcomp::glht(random_int, linfct = matrix(c(0, 0, 0, 1, -1, 0), 1)))
 ```
 
-Additionally, comparing visits 12, 24, and 36 with each other, we obtain a p-value of 0.538, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that visits 12, 24, and 36 are also not different from each other.
+We conduct another test to see if there are significant differences between the second and third visit. We get a p-value of 0.0665, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that there are no significant differences between the second and third visit.
+
+So overall, we conclude that there are no significant differences among the three visits.
 
 ## Question 1 (d)
-$\widehat{\sigma^2} = \text{(SD of residual)}^2 = (3.424504)^2 = 11.73$
+```{r}
+summary(random_int)
+```
 
-$\widehat{\nu^2} = \text{(SD of intercept)}^2 = (4.035664)^2 = 16.29$
+$\widehat{\sigma^2} = \text{(SD of residual)}^2 = (3.424504)^2 = 11.727$
+
+$\widehat{\nu^2} = \text{(SD of intercept)}^2 = (4.035664)^2 = 16.287$
 
 \newpage
 # Question 2
@@ -82,7 +85,7 @@ $$\text{HAMTTL}_i = \beta_0 + (\beta_1 \times \text{Gender}) + (\beta_2 \times \
 
 where 
 $$
-\text{cov}(Y) = \text{cov}(\alpha_i + b_i + \Sigma) = \text{cov}(\alpha_i) + \text{cov}(\Sigma) = \begin{bmatrix}
+\text{cov}(Y) = \text{cov}(\alpha_i + b_i + \Sigma) = \text{cov}(\alpha_i) + \text{cov}(b_i) + \text{cov}(\Sigma) = \begin{bmatrix}
 \sigma^2 + \nu^2 + \mu^2 & \nu^2 + \mu^2 & \nu^2 + \mu^2 & \nu^2 + \mu^2 \\
 \nu^2 + \mu^2 & \sigma^2 + \nu^2 + \mu^2 & \nu^2 + \mu^2 & \nu^2 + \mu^2 \\
 \nu^2 + \mu^2 & \nu^2 + \mu^2 & \nu^2 + \sigma^2 + \mu^2 & \nu^2 + \mu^2 \\
@@ -92,11 +95,75 @@ $$
 
 Under this model, the covariance matrix does not change with subjects because we are assuming an independent covariance structure.
 
-In this case, covariance matrix changes with the subjects because we are considering random effects.
+In this case, covariance matrix changes with the subjects.
 
 ## Question 2 (b)
 ```{r}
-# needs to be independent 
+random_slope_ind <- lme(HAMTTL ~ GENDER + CIRSTTL + VISIT,
+                        data = dat,
+                        random = list(UNIT_ID = pdDiag(~ CIRSTTL)))
+
+summary(random_slope_ind)
+```
+
+$\widehat{\sigma^2} = \text{(SD of residual)}^2 = (3.392853)^2 = 11.511$
+
+$\widehat{\nu^2} = \text{(SD of intercept)}^2 = (2.571067)^2 = 6.610$
+
+$\widehat{\mu^2} = \text{(SD of CIRSTTL)}^2 = (0.32239)^2 = 0.104$
+
+## Question 2 (c)
+```{r}
+library(lmtest)
+
+lrtest(random_int, random_slope_ind)
+```
+
+Using a likelihood ratio test comparing the nested models: one with the random intercept and one with the random intercept and slope, we get a p-value of < 0.0001, which is less than our cutoff of 0.05. This gives us sufficient evidence to reject $H_0$, which suggests that the random effect of CIRSTTL is significant.
+
+## Question 2 (d)
+```{r}
+dat %>% 
+  filter(UNIT_ID == "ZIL8618D") %>% 
+  select(UNIT_ID, VISIT, GENDER, CIRSTTL) %>% 
+  view()
+```
+
+The participant with UNIT_ID = ZIL8618D has gender = 1 and CIRSTTL = 3 at the first visit, CIRSTTL = 4 at the second visit, CIRSTTL = 8 at the third visit, and CIRSTTL = 9 at the fourth visit.
+
+```{r}
+summary(random_slope_ind)
+```
+
+To get the mean predicted values for this participant at each visit, we use the fixed effects estimates.
+
+* For the first visit, $\text{HAMTTL} = 4.979640 + 0 + (0.487282 \times 3) + 0 + 0 + 0 = 6.441$
+
+* For the second visit, $\text{HAMTTL} = 4.979640 + 0 + (0.487282 \times 4) + 0.226189 + 0 + 0 = 7.155$
+
+* For the third visit, $\text{HAMTTL} = 4.979640 + 0 + (0.487282 \times 8) + 0 + (-0.343347) + 0 = 8.535$
+
+* For the fourth visit, $\text{HAMTTL} = 4.979640 + 0 + (0.487282 \times 9) + 0 + 0 + (-0.118713) = 9.247$
+
+\newpage
+# Question 3
+## Question 3 (a)
+$$\text{HAMTTL}_i = \beta_0 + (\beta_1 \times \text{Gender}) + (\beta_2 \times \text{CIRSTTL}) + (\beta_3 \times \text{visit}_{12}) + (\beta_4 \times \text{visit}_{24}) + (\beta_5 \times \text{visit}_{36}) + r_i + \epsilon_{ij}, \epsilon_i \sim N(\Sigma)$$
+
+where 
+$$
+\text{cov}(Y) = \text{cov}(\alpha_i + b_i + \Sigma) = \text{cov}(\alpha_i) + \text{cov}(b_i) + \text{cov}(\Sigma) = \begin{bmatrix}
+\sigma^2 + \nu^2 + \mu^2 & \tau \nu^2 \mu^2 & \tau \nu^2 \mu^2 & \tau \nu^2 \mu^2 \\
+\tau \nu^2 \mu^2 & \sigma^2 + \nu^2 + \mu^2 & \tau \nu^2 \mu^2 & \tau \nu^2 \mu^2 \\
+\tau \nu^2 \mu^2 & \tau \nu^2 \mu^2 & \nu^2 + \sigma^2 + \mu^2 & \tau \nu^2 \mu^2 \\
+\tau \nu^2 \mu^2 & \tau \nu^2 \mu^2 & \tau \nu^2 \mu^2 & \nu^2 + \sigma^2 + \mu^2
+\end{bmatrix}
+$$
+
+Under this model,  the covariance matrix changes with each subject.
+
+## Question 3 (b)
+```{r}
 random_slope <- lme(HAMTTL ~ GENDER + CIRSTTL + VISIT,
                   data = dat,
                   random = ~ 1 + CIRSTTL | UNIT_ID)
@@ -104,28 +171,23 @@ random_slope <- lme(HAMTTL ~ GENDER + CIRSTTL + VISIT,
 summary(random_slope)
 ```
 
-$\widehat{\sigma^2} = \text{(SD of residual)}^2 = (1.912371)^2 = 3.66$
+$\widehat{\sigma^2} = \text{(SD of residual)}^2 = (3.3871361)^2 = 11.473$
 
-$\widehat{\nu^2} = \text{(SD of intercept)}^2 = (4.762685)^2 = 22.68$
+$\widehat{\nu^2} = \text{(SD of intercept)}^2 = (2.8071870)^2 = 7.880$
 
+$\widehat{\mu^2} = \text{(SD of CIRSTTL)}^2 = (0.3516143)^2 = 0.124$
 
-## Question 2 (c)
-Do LRT for random_int and random_slope
-
-## Question 2 (d)
-Fixed effects only
-
-\newpage
-# Question 3
-## Question 3 (a)
-Similar to 2(a) but add tau
-this is the default structure of random_slope
-
-## Question 3 (b)
-this is fine
+$\tau = -0.172$
 
 ## Question 3 (c)
-??
+```{r}
+lrtest(random_slope_ind, random_slope)
+```
+
+Using a likelihood ratio test comparing the nested models: one with the random intercept and slope which are assumed to be independent and one with the random intercept and slope with unstructured correlation structure, we get a p-value of 0.785, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that the correlation between the random intercept and slope is not significant.
 
 ## Question 3 (d)
-??
+```{r}
+nlme::getVarCov(random_slope, individual = "ZIL8618D", type = "marginal")
+```
+

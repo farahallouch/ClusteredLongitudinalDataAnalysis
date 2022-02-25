@@ -1,0 +1,217 @@
+---
+title: "Clustered & Longitudinal Data Analysis HW 4"
+author: "Farah Allouch"
+date: "`r format(Sys.time(), ' %B %d, %Y')`"
+output: 
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE)
+
+rm(list = ls())
+options(scipen = 999)
+
+library(tidyverse)
+```
+
+\newpage
+# Question 1
+## Question 1 (a)
+```{r}
+dat <- read.csv("v4c.csv")
+
+dat <- dat %>% 
+  mutate(GENDER = as.factor(GENDER),
+         VISIT = as.factor(VISIT),
+         ID = as.numeric(as.factor(UNIT_ID)))
+
+dat_0 <- dat %>% 
+  filter(VISIT == 0)
+
+simple_glm_0 <- glm(HAMTTL ~ AGE + GENDER + EDUCATION + CIRSTTL,
+                    family = gaussian,
+                    data = dat_0) 
+
+summary(simple_glm_0)
+```
+
+With maximum likelihood estimation, we obtain the results above. Age, gender, education and CIRSTTL are significantly associated with HAMTTL at the 5% significance level.
+
+## Question 1 (b)
+```{r}
+library(geepack)
+
+gee_0 <- geeglm(HAMTTL ~ AGE + GENDER + EDUCATION + CIRSTTL,
+                  data = dat_0,
+                  id = ID,
+                  family = gaussian(link = "identity"))
+
+summary(gee_0)
+```
+
+Using estimating equations, we obtain the results above. Age, gender, education and CIRSTTL are significantly associated with HAMTTL at the 5% significance level.
+
+## Question 1 (c)
+The results from 1 (a) and 1 (b) are exactly the same, with age gender education and CIRSTTL being significantly associated with HAMTTL and the coefficient estimates in the 2 model being exactly the same. However, the standard error in the estimating equations model are generally slightly smaller than the glm model.
+
+\newpage
+# Question 2
+## Question 2 (a)
+```{r}
+pooled_lm <- lm(HAMTTL ~ AGE + GENDER + EDUCATION + CIRSTTL + VISIT,
+                   family = gaussian,
+                   data = dat) 
+
+summary(pooled_lm)
+```
+
+Using the pooled data and MLE inference, age, gender, education, and CIRSTTL are all significantly associated with HAMTTL at the 5% significance level.
+
+```{r}
+anova(pooled_lm)
+```
+
+Furthermore, running a type 3-like test for VISIT gives a p-value > 0.05, which does not give us sufficient evidence to reject $H_0$. This suggests that there is no difference in the outcome across time points.
+
+## Question 2 (b)
+```{r}
+gee_ind <- geeglm(HAMTTL ~ AGE + GENDER + EDUCATION + CIRSTTL + VISIT,
+                  data = dat,
+                  id = ID,
+                  waves = VISIT,
+                  family = gaussian(link = "identity"),
+                  corstr = "independence",
+                 scale.fix = TRUE)
+
+summary(gee_ind)
+```
+
+Using GEE inference and independent working correlation matrix, age, gender, CIRSTTL and visit == 24 are significantly associated with HAMTTL.
+
+```{r}
+anova(gee_ind)
+```
+
+Furthermore, running a type 3-like test for VISIT gives a p-value < 0.05, which gives us sufficient evidence to reject $H_0$. This suggests that there is a difference in the outcome across time points.
+
+## Question 2 (c)
+```{r}
+gee_cs <- geeglm(HAMTTL ~ AGE + GENDER + EDUCATION + CIRSTTL + VISIT,
+                  data = dat,
+                  id = ID,
+                  waves = VISIT,
+                  family = gaussian(link = "identity"),
+                  corstr = "exchangeable",
+                 scale.fix = TRUE)
+
+summary(gee_cs)
+```
+
+Using GEE inference and exchangeable working correlation matrix, gender and CIRSTTL are significantly associated with HAMTTL.
+
+```{r}
+anova(gee_cs)
+```
+
+Furthermore, running a type 3-like test for VISIT gives a p-value > 0.05, which does not give us sufficient evidence to reject $H_0$. This suggests that there is no difference in the outcome across time points.
+
+## Question 2 (d)
+```{r}
+gee_ar <- geeglm(HAMTTL ~ AGE + GENDER + EDUCATION + CIRSTTL + VISIT,
+                 data = dat,
+                 id = ID,
+                 waves = VISIT,
+                 family = gaussian(link = "identity"),
+                 corstr = "ar1",
+                 scale.fix = TRUE)
+
+summary(gee_ar)
+```
+
+Using GEE inference and first order autoregressive (AR1) working correlation matrix, age, gender, and CIRSTTL are significantly associated with HAMTTL.
+
+```{r}
+anova(gee_ar)
+```
+
+Furthermore, running a type 3-like test for VISIT gives a p-value > 0.05, which does not give us sufficient evidence to reject $H_0$. This suggests that there is no difference in the outcome across time points.
+
+## Question 2 (e)
+Comparing (a) to (d), we see that age, gender, and CIRSTTL are significant in both models. 
+
+The standard errors in (a) are substantially greater than those in (d)
+
+\newpage
+# Question 3
+## Question 3 (a)
+```{r}
+rm(list = ls())
+
+dat <- read.csv("r01new.csv")
+
+dat_long <- pivot_longer(data = dat,
+                         cols = c(hiv_0, hiv_3),
+                         names_to = "visit",
+                         names_prefix = "hiv_",
+                         values_to = "hiv")
+
+dat_long <- dat_long %>% 
+  mutate(visit = as.factor(visit),
+         group = as.factor(group))
+```
+
+$\beta_0$ is the mean HIV knowledge at baseline for the control group.
+
+$\beta_1$ is the mean difference in HIV knowledge comparing the 3 month visit to baseline, among people in the control group.
+
+$\beta_2$ is the mean difference in HIV knowledge comparing people in the treatment group to people in the control group, at baseline.
+
+$\beta_3$ is the difference in mean difference between HIV knowledge comparing 3-month to baseline visit among the treatment group and 3-month to baseline visit among the control group.
+
+## Question 3 (b)
+```{r}
+pooled_lm <- lm(hiv ~ visit * group,
+                data = dat_long)
+
+summary(pooled_lm)
+```
+
+Using MLE infterence and the pooled data, visit and the interaction between visit and group was significant, but not group.
+
+## Question 3 (c)
+```{r}
+gee_ind <- geeglm(hiv ~ visit * group,
+                 data = dat_long,
+                 id = ID,
+                 waves = visit,
+                 family = gaussian(link = "identity"),
+                 corstr = "independent",
+                 scale.fix = TRUE)
+
+summary(gee_ind)
+```
+
+Using GEE and independent correlation matrix, visit and the interaction between visit and group was significant, but not group.
+
+## Question 3 (d)
+```{r}
+gee_cs <- geeglm(hiv ~ visit * group,
+                 data = dat_long,
+                 id = ID,
+                 waves = visit,
+                 family = gaussian(link = "identity"),
+                 corstr = "exchangeable",
+                 scale.fix = TRUE)
+
+summary(gee_cs)
+```
+
+## Question 3 (d)
+
+Using GEE and exchangeable correlation matrix, visit and the interaction between visit and group was significant, but not group.
+
+## Question 3 (e)
+The results of (b) and (d) are very similar in terms of coefficient estimates and the variables that were significant at the 5% level. The only difference is the coefficient for visit and a substantially smaller standard error for visit.

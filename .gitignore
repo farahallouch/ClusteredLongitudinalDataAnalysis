@@ -2,8 +2,16 @@
 .Rhistory
 .RData
 .Ruserdata
+.gitignore
 hw1/BIOS8350HW01.pdf
 hw1/hw01.csv
 hw1/hw1_F_Allouch.pdf
 hw2/BIOS8350HW02.pdf
 hw2/hw2_F_Allouch.pdf
+hw3/BIOS8350HW03.pdf
+hw3/hw3_F_Allouch.pdf
+hw3/v4c.csv
+hw4/BIOS8350HW04.pdf
+hw4/r01new.csv
+hw4/v4c.csv
+hw4/hw4_F_Allouch.pdf

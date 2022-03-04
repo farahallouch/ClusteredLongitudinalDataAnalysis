@@ -65,7 +65,7 @@ anova(simple_ee)
 The results from the type 3 test produces a p-value of 0.80, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0: \beta_3 = \beta_4 = 0$ which suggests that there is no difference in the UTI outcome across the 3 marital statuses.
 
 ## Question 1 (d)
-$\text{Pr(UTI = 1)} = \frac{e^{\beta_0 + (\beta_1 \times 50) + (\beta_2 * 0) + (\beta_3 \times 0) + (\beta_4 \times 0)}}{1 + e^{\beta_0 + (\beta_1 \times 50) + (\beta_2 * 0) + (\beta_3 \times 0) + (\beta_4 \times 0)}} = \frac{e^{0.4469 + (-0.0171 \times 50) + 0 + 0 + 0}}{1 + e^{0.4469 + (-0.0171 \times 50) + 0 + 0 + 0}} = 0.399$
+$\text{Pr(UTI = Yes)} = \frac{e^{\beta_0 + (\beta_1 \times 50) + (\beta_2 * 0) + (\beta_3 \times 0) + (\beta_4 \times 0)}}{1 + e^{\beta_0 + (\beta_1 \times 50) + (\beta_2 * 0) + (\beta_3 \times 0) + (\beta_4 \times 0)}} = \frac{e^{0.4469 + (-0.0171 \times 50) + 0 + 0 + 0}}{1 + e^{0.4469 + (-0.0171 \times 50) + 0 + 0 + 0}} = 0.399$
 
 ## Question 1 (e)
 ```{r}
@@ -76,7 +76,7 @@ log_odds_1e_2 <- simple_ee$coefficients[1] + (simple_ee$coefficients[2] * 55) + 
 or_1e <- exp(log_odds_1e_1) / exp(log_odds_1e_2)
 ```
 
-$\text{OR} = \frac{e^{(\beta_0 + (\beta_1 \times 50) + (\beta_2 \times 0) + (\beta_3 \times 0) + (\beta_4 \times 0))}}{e^{(\beta_0 + (\beta_1 \times 55) + (\beta_2 \times 1) + (\beta_3 \times 1) + (\beta_4 \times 0))}} = \frac{e^{(0.4469 + (-0.0171 \times 50) + (-0.2081 \times 0) + (-0.2385 \times 0) + (-0.0222 \times 0))}}{0.4469 + (e^{(-0.0171 \times 55) + (-0.2081 \times 1) + (-0.2385 \times 1) + (-0.0222 \times 0))}} = 1.7$
+$\text{OR} = \frac{e^{(\beta_0 + (\beta_1 \times 50) + (\beta_2 \times 0) + (\beta_3 \times 0) + (\beta_4 \times 0))}}{e^{(\beta_0 + (\beta_1 \times 55) + (\beta_2 \times 1) + (\beta_3 \times 1) + (\beta_4 \times 0))}} = \frac{e^{(0.4469 + (-0.0171 \times 50) + (-0.2081 \times 0) + (-0.2385 \times 0) + (-0.0222 \times 0))}}{e^{(0.4469) + (-0.0171 \times 55) + (-0.2081 \times 1) + (-0.2385 \times 1) + (-0.0222 \times 0))}} = 1.7$
 
 \newpage
 # Question 2 
@@ -144,3 +144,26 @@ I tried to do this in R by downloading an older version, but I could not.
 \newpage
 # Question 3
 ## Question 3 (a)
+```{r}
+library(lme4)
+
+glmer_int <- glmer(uti ~ group + gender + blockage + (1 | subject),
+                   data = catheter,
+                   family = binomial(link = "logit"))
+
+summary(glmer_int)
+```
+
+Based on this model, the p-value for the coefficient estimate of blockage is 0.078, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0: \beta_3 = 0 => \text{OR}_3 = 1$, which suggests that blockage is not associated with UTIs at the 5% significance level.
+
+## Question 3 (b)
+Since this is a random effects model, the interpretation of the coefficients is subject-specific.
+
+$\widehat{\beta_2}$ can be interpreted as the log odds ratio of a specific male having a UTI compared to a specific female having a UTI, holding all other covariates constant, with the same random intercept. 
+
+## Question 3 (c)
+```{r}
+head(ranef(glmer_int)$subject, 1)
+```
+
+The estimate of the random intercept for the first subject  is 1.37.

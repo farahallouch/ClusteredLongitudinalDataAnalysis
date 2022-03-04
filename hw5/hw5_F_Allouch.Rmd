@@ -1,0 +1,146 @@
+---
+title: "Clustered & Longitudinal Data Analysis HW 5"
+author: "Farah Allouch"
+date: "`r format(Sys.time(), ' %B %d, %Y')`"
+output: 
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE)
+
+rm(list = ls())
+options(scipen = 999)
+
+library(tidyverse)
+```
+
+\newpage
+# Question 1
+## Question 1 (a)
+```{r}
+intake <- read.csv("intake.csv")
+
+intake <- intake %>% 
+  rename(uti = cp47) %>% 
+  mutate(subject = as.factor(subject),
+         uti = case_when(uti == "No" ~ 0,
+                                   uti == "Yes" ~ 1), # geeglm() needs outcome to be numeric, not factor
+         ms = as.factor(case_when(ms == 1 ~ 1,
+                                   ms %in% c(2:6) ~ 2,
+                                   ms == 7 ~ 3))) %>% 
+  select(subject, uti, age, gender, ms) %>% 
+  na.omit()
+```
+
+$H_0$ : there are no differences in the UTI outcome among the three marital status = $\beta_3 = \beta_4 = 0$
+
+## Question 1 (b)
+```{r}
+simple_glm <- glm(uti ~ age + gender + ms,
+                  family = binomial(link = "logit"),
+                  data = intake)
+
+summary(simple_glm)
+lmtest::lrtest(update(simple_glm, . ~ . - ms), simple_glm)
+```
+
+The results from the likelihood ratio test comparing the model without to ms to the model with ms produces a p-value of 0.80, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0: \beta_3 = \beta_4 = 0$ which suggests that there is no difference in the UTI outcome across the 3 marital statuses.
+
+## Question 1 (c)
+```{r}
+library(geepack)
+
+simple_ee <- geeglm(uti ~ age + gender + ms,
+                    id = subject,
+                    family = binomial(link = "logit"),
+                    data = intake)
+
+summary(simple_ee)
+anova(simple_ee)
+```
+
+The results from the type 3 test produces a p-value of 0.80, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0: \beta_3 = \beta_4 = 0$ which suggests that there is no difference in the UTI outcome across the 3 marital statuses.
+
+## Question 1 (d)
+$\text{Pr(UTI = 1)} = \frac{e^{\beta_0 + (\beta_1 \times 50) + (\beta_2 * 0) + (\beta_3 \times 0) + (\beta_4 \times 0)}}{1 + e^{\beta_0 + (\beta_1 \times 50) + (\beta_2 * 0) + (\beta_3 \times 0) + (\beta_4 \times 0)}} = \frac{e^{0.4469 + (-0.0171 \times 50) + 0 + 0 + 0}}{1 + e^{0.4469 + (-0.0171 \times 50) + 0 + 0 + 0}} = 0.399$
+
+## Question 1 (e)
+```{r}
+log_odds_1e_1 <- simple_ee$coefficients[1] + (simple_ee$coefficients[2] * 50) + (simple_ee$coefficients[3] * 0) + (simple_ee$coefficients[4] * 0 + (simple_ee$coefficients[5] * 0))
+
+log_odds_1e_2 <- simple_ee$coefficients[1] + (simple_ee$coefficients[2] * 55) + (simple_ee$coefficients[3] * 1) + (simple_ee$coefficients[4] * 1 + (simple_ee$coefficients[5] * 0))
+
+or_1e <- exp(log_odds_1e_1) / exp(log_odds_1e_2)
+```
+
+$\text{OR} = \frac{e^{(\beta_0 + (\beta_1 \times 50) + (\beta_2 \times 0) + (\beta_3 \times 0) + (\beta_4 \times 0))}}{e^{(\beta_0 + (\beta_1 \times 55) + (\beta_2 \times 1) + (\beta_3 \times 1) + (\beta_4 \times 0))}} = \frac{e^{(0.4469 + (-0.0171 \times 50) + (-0.2081 \times 0) + (-0.2385 \times 0) + (-0.0222 \times 0))}}{0.4469 + (e^{(-0.0171 \times 55) + (-0.2081 \times 1) + (-0.2385 \times 1) + (-0.0222 \times 0))}} = 1.7$
+
+\newpage
+# Question 2 
+## Question 2 (a)
+```{r}
+rm(list = ls())
+
+catheter <- read.csv("catheter.csv")
+
+catheter <- catheter %>% 
+  rename(uti = cp47,
+         blockage = cp9,
+         group = GROUP) %>% 
+  mutate(uti = case_when(uti == "No" ~ 0,
+                                   uti == "Yes" ~ 1), # geeglm() needs outcome to be numeric ONLY (not character or factor)
+         subject = as.factor(subject),
+         blockage = ifelse(blockage == "", NA, blockage)) %>% # blockage has 3 blanks that aren't interpreted by R as NAs
+  select(subject, time, uti, group, gender, blockage) %>% 
+  na.omit()
+
+gee_ind <- geeglm(uti ~ group + gender + blockage,
+                  data = catheter,
+                  id = subject,
+                  waves = time,
+                  corstr = "independence",
+                  scale.fix = TRUE)
+
+summary(gee_ind)
+```
+
+Using independent working correlation structure, the p-value for blockage is 0.013, which is less than our cutoff of 0.05. This gives us sufficient evidence to reject $H_0$, which suggests that blockage is associated with UTI at the 5% significance level.
+
+## Question 2 (b)
+```{r}
+gee_cs <- geeglm(uti ~ group + gender + blockage,
+                  data = catheter,
+                  id = subject,
+                  waves = time,
+                  corstr = "exchangeable",
+                  scale.fix = TRUE)
+
+summary(gee_cs)
+```
+
+Using exchangeable working correlation structure, the p-value for blockage is 0.14, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that blockage is not associated with UTI at the 5% significance level.
+
+## Question 2 (c)
+```{r include = TRUE}
+## Can't run - R crashes
+# gee_un <- geeglm(uti ~ group + gender + blockage,
+#                   data = catheter,
+#                   id = subject,
+#                   waves = time,
+#                   corstr = "unstructured",
+#                   scale.fix = TRUE)
+# 
+# summary(gee_un)
+```
+
+I can't run this in R. Everytime I try to, R crashes. Here is a quote from the geeglm() manual - Warning: Use "unstructured" correlation structure only with great care. (It may cause R to crash).
+
+## Question 2 (d)
+I tried to do this in R by downloading an older version, but I could not. 
+
+\newpage
+# Question 3
+## Question 3 (a)

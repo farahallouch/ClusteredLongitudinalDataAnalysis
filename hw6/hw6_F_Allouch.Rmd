@@ -1,0 +1,71 @@
+---
+title: "Clustered & Longitudinal Data Analysis HW 6"
+author: "Farah Allouch"
+date: "`r format(Sys.time(), ' %B %d, %Y')`"
+output: 
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE)
+
+rm(list = ls())
+options(scipen = 999)
+
+library(tidyverse)
+```
+
+\newpage
+# Question 1
+## Question 1 (a)
+Compared to MS = 3, MS = 1 is a significant predictor of no depression compared to major depression. No other predictors are significant.
+
+## Question 1 (b)
+```{r}
+# (exp(((-0.4883) + (-7.66) + (0.07580 * 78) + (0.04571 * 16) + (0.9571 * 1) + (0.5001 * 0) + (0.05710 * 1)))) / (1 + (exp(((-0.4883) + (-7.66) + (0.07580 * 78) + (0.04571 * 16) + (0.9571 * 1) + (0.5001 * 0) + (0.05710 * 1)))) + (exp(((-0.4883) + (-7.66) + (0.07580 * 78) + (0.04571 * 16) + (0.9571 * 1) + (0.5001 * 0) + (0.05710 * 1)))))
+```
+
+$$\text{Pr(Minor)} = \frac{e^{((-0.4883) + (-7.66) + (0.07580 \times 78) + (0.04571 \times 16) + (0.9571 \times 1) + (0.5001 \times 0) + (0.05710 \times 1))}}{1 + e^{(1.5288 + (-6.0003) + (0.06631 \times 78) + (0.1420 \times 16) + ((-0.1333) \times 1) + (1.2637 \times 0) + (0.2249 \times 1))} + e^{((-0.4883) + (-7.66) + (0.07580 \times 78) + (0.04571 \times 16) + (0.9571 \times 1) + (0.5001 \times 0) + (0.05710 \times 1))}} = $$
+
+$$0.275$$
+
+\newpage
+# Question 2
+## Question 2 (a)
+Compared to MS = 3, MS = 1 is a significant predictor of no depression compared to minor and major depression AND no and minor depression compared to major depression. No other predictors are significant.
+
+## Question 2 (b)
+$$
+\text{Pr(Minor)} \\
+= \frac{e^{(\beta_1 \times \text{age}) + (\beta_2 \times \text{edu}) + (\beta_3 \times \text{group}) + (\beta_4 \times \text{MS = 1}) + (\beta_5 \times \text{MS = 5})} \times (e^{(\alpha_{id_1} + \alpha_1)} - e^{(\alpha_{id_1} + \alpha_0)})}{(1 + e^{(\alpha_{id_1} + \alpha_1 + (\beta_1 \times \text{age}) + (\beta_2 \times \text{edu}) + (\beta_3 \times \text{group}) + (\beta_4 \times \text{MS = 1}) + (\beta_5 \times \text{MS = 5}))}) \times (1 + e^{( \alpha_{id_1} + \alpha_0 + (\beta_1 \times \text{age}) + (\beta_2 \times \text{edu}) + (\beta_3 \times \text{group}) + (\beta_4 \times \text{MS = 1}) + (\beta_5 \times \text{MS = 5}))})} \\
+= \frac{e^{(0.05895 \times 78) + (0.1719 \times 16) + (-0.45 \times 1) + (1.4245 \times 0) + (0.2657 \times 1)} \times (e^{(2.3322 + (-4.1476))} - e^{(2.3322 + (-6.7132))})}{(1 + e^{(2.3322 + (-4.1476) + (0.05895 \times 78) + (0.1719 \times 16) + (-0.45 \times 1) + (1.4245 \times 0) + (0.2657 \times 1))}) \times (1 + e^{(2.3322 + (-6.7132) + (0.05895 \times 78) + (0.1719 \times 16) + (-0.45 \times 1) + (1.4245 \times 0) + (0.2657 \times 1))})}
+$$
+
+\newpage
+# Question 3
+## Question 3 (a)
+```{r}
+catheter <- read.csv("../hw5/catheter.csv")
+
+library(multgee)
+
+catheter <- catheter %>% 
+  rename(group = GROUP) %>% 
+  mutate(uti = case_when(cp48 == 0 ~ 0,
+                         cp48 == 1 ~ 1,
+                         cp48 >= 2 ~ 2), 
+         uti = factor(uti, levels = c(2, 1, 0)),
+         subject = as.factor(subject)) %>% 
+  select(subject, time, uti, group) %>% 
+  na.omit()
+
+ordinal_lm <- ordLORgee(uti ~ group,
+                        data = catheter,
+                        id = subject,
+                        repeated = time)
+
+summary(ordinal_lm)
+```
+

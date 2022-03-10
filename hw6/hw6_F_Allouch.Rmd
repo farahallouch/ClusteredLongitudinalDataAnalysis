@@ -87,6 +87,8 @@ The p-value associated with the group estimate is 0.716. This is greater than ou
 # (exp((-1.09738) + (-0.08300)) / (1 + exp((-1.09738) + (-0.08300)))) - (exp((-3.33313) + (-0.08300)) / (1 + exp((-3.33313) + (-0.08300))))
 ```
 
+(Please note my estimated probabilities are slightly different because R gives slightly different estimates than SAS. I confirm my numbers by outputting the fitted values below.)
+
 $\text{Pr(UTI)}_1 = \gamma_1 - \gamma_0$ where $\gamma_1$ is the cumulative probability of level 1 and 2 UTI and $\gamma_0$ is the probability of level 1 UTI.
 
 For group 1,
@@ -95,7 +97,7 @@ $\gamma_0 = \frac{e^{\alpha_0}}{1 + e^{\alpha_0}} = 0.0345$
 
 $\gamma_1 = \frac{e^{\alpha_1}}{1 + e^{\alpha_1}} = 0.2502$
 
-$\text{Pr(UTI)}_1 = \gamma_1 - \gamma_0 = 0.2184$
+$\text{Pr(UTI)}_1 = \gamma_1 - \gamma_0 = 0.2158$
 
 For group 2, 
 
@@ -104,3 +106,9 @@ $\gamma_0 = \frac{e^{(\alpha_0 + \beta_{0x}^T)}}{1 + e^{(\alpha_0 + \beta_{0x}^T
 $\gamma_1 = \frac{e^{(\alpha_1 + \beta_{1x}^T)}}{1 + e^{(\alpha_1 + \beta_{1x}^T)}} = 0.2350$
 
 $\text{Pr(UTI)}_1 = \gamma_1 - \gamma_0 = 0.2032$
+
+```{r}
+ordinal_lm$fitted.values[1, 2]
+ordinal_lm$fitted.values[7, 2]
+```
+

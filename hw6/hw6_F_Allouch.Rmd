@@ -9,7 +9,8 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE,
-                      warning = FALSE)
+                      warning = FALSE,
+                      message = FALSE)
 
 rm(list = ls())
 options(scipen = 999)
@@ -20,28 +21,36 @@ library(tidyverse)
 \newpage
 # Question 1
 ## Question 1 (a)
-Compared to MS = 3, MS = 1 is a significant predictor of no depression compared to major depression. No other predictors are significant.
+Compared to MS = 3, MS = 1 is a significant predictor of no depression compared to major depression (p < 0.05). No other predictors are significant.
+
+Calculating the p-values from the type 3 tests for the variables, none of them are significant. The p-values are 0.11, 0.30, 0.19, and 0.20, respectively. So even though MS = 1 compared to MS = 3 is a significant predictor of no depression vs major depression, overall MS is not a significant predictor of depression.
 
 ## Question 1 (b)
 ```{r}
-# (exp(((-0.4883) + (-7.66) + (0.07580 * 78) + (0.04571 * 16) + (0.9571 * 1) + (0.5001 * 0) + (0.05710 * 1)))) / (1 + (exp(((-0.4883) + (-7.66) + (0.07580 * 78) + (0.04571 * 16) + (0.9571 * 1) + (0.5001 * 0) + (0.05710 * 1)))) + (exp(((-0.4883) + (-7.66) + (0.07580 * 78) + (0.04571 * 16) + (0.9571 * 1) + (0.5001 * 0) + (0.05710 * 1)))))
+# (exp((-0.4883) + (-7.66) + (0.07580 * 78) + (0.04571 * 16) + (0.9571) + (0.05710))) / (1 + (exp((-0.4883) + (-7.66) + (0.07580 * 78) + (0.04571 * 16) + (0.9571) + (0.05710))) + (exp((1.5288) + (-6.0003) + (0.06631 * 78) + (0.1420 * 16) + (-0.1333) + (0.2249))))
 ```
 
-$$\text{Pr(Minor)} = \frac{e^{((-0.4883) + (-7.66) + (0.07580 \times 78) + (0.04571 \times 16) + (0.9571 \times 1) + (0.5001 \times 0) + (0.05710 \times 1))}}{1 + e^{(1.5288 + (-6.0003) + (0.06631 \times 78) + (0.1420 \times 16) + ((-0.1333) \times 1) + (1.2637 \times 0) + (0.2249 \times 1))} + e^{((-0.4883) + (-7.66) + (0.07580 \times 78) + (0.04571 \times 16) + (0.9571 \times 1) + (0.5001 \times 0) + (0.05710 \times 1))}} = $$
-
-$$0.275$$
+$\text{Pr(Minor)} = \frac{e^{(r_{i1} + \alpha_1 + \beta^T_{x1})}}{(1 + e^{(r_{i1} + \alpha_1 + \beta^T_{x1})} + e^{(r_{i0} + \alpha_0 + \beta^T_{x0})})} = 0.0267$
 
 \newpage
 # Question 2
 ## Question 2 (a)
-Compared to MS = 3, MS = 1 is a significant predictor of no depression compared to minor and major depression AND no and minor depression compared to major depression. No other predictors are significant.
+Compared to MS = 3, MS = 1 is a significant predictor of no depression compared to minor and major depression AND no and minor depression compared to major depression (p < 0.05). No other predictors are significant.
+
+Calculating the p-values from the type 3 tests for the variables, none of them are significant. The p-values are 0.20, 0.11, 0.43, and 0.06, respectively. So even though MS = 1 compared to MS = 3 is a significant predictor of no depression compared to minor and major depression AND no and minor depression compared to major depression, overall MS is not a significant predictor of depression.
 
 ## Question 2 (b)
-$$
-\text{Pr(Minor)} \\
-= \frac{e^{(\beta_1 \times \text{age}) + (\beta_2 \times \text{edu}) + (\beta_3 \times \text{group}) + (\beta_4 \times \text{MS = 1}) + (\beta_5 \times \text{MS = 5})} \times (e^{(\alpha_{id_1} + \alpha_1)} - e^{(\alpha_{id_1} + \alpha_0)})}{(1 + e^{(\alpha_{id_1} + \alpha_1 + (\beta_1 \times \text{age}) + (\beta_2 \times \text{edu}) + (\beta_3 \times \text{group}) + (\beta_4 \times \text{MS = 1}) + (\beta_5 \times \text{MS = 5}))}) \times (1 + e^{( \alpha_{id_1} + \alpha_0 + (\beta_1 \times \text{age}) + (\beta_2 \times \text{edu}) + (\beta_3 \times \text{group}) + (\beta_4 \times \text{MS = 1}) + (\beta_5 \times \text{MS = 5}))})} \\
-= \frac{e^{(0.05895 \times 78) + (0.1719 \times 16) + (-0.45 \times 1) + (1.4245 \times 0) + (0.2657 \times 1)} \times (e^{(2.3322 + (-4.1476))} - e^{(2.3322 + (-6.7132))})}{(1 + e^{(2.3322 + (-4.1476) + (0.05895 \times 78) + (0.1719 \times 16) + (-0.45 \times 1) + (1.4245 \times 0) + (0.2657 \times 1))}) \times (1 + e^{(2.3322 + (-6.7132) + (0.05895 \times 78) + (0.1719 \times 16) + (-0.45 \times 1) + (1.4245 \times 0) + (0.2657 \times 1))})}
-$$
+```{r}
+# ((exp((2.3322) + (-4.1476) + (0.05895 * 78) + (0.1719 * 16) + (-0.45) + (0.2657))) / (1 + (exp((2.3322) + (-4.1476) + (0.05895 * 78) + (0.1719 * 16) + (-0.45) + (0.2657))))) - ((exp((2.3322) + (-6.7132) + (0.05895 * 78) + (0.1719 * 16) + (-0.45) + (0.2657))) / (1 + (exp((2.3322) + (-6.7132) + (0.05895 * 78) + (0.1719 * 16) + (-0.45) + (0.2657)))))
+```
+
+$\text{Pr(Minor)} = \gamma_1 - \gamma_0$ where $\gamma_1$ is the cumulative probability of minor and no depression and $\gamma_0$ is the probability of no depression.
+
+$\gamma_0 = \frac{e^{(r_i + \alpha_0 + \beta_{0x}^T)}}{1 + e^{(r_i + \alpha_0 + \beta_{0x}^T)}} = 0.9418$
+
+$\gamma_1 = \frac{e^{(r_i + \alpha_1 + \beta_{1x}^T)}}{1 + e^{(r_i + \alpha_1 + \beta_{1x}^T)}} = 0.9953$
+
+$\text{Pr(Minor)} = \gamma_1 - \gamma_0 = 0.0535$
 
 \newpage
 # Question 3
@@ -61,7 +70,7 @@ catheter <- catheter %>%
   select(subject, time, uti, group) %>% 
   na.omit()
 
-ordinal_lm <- ordLORgee(uti ~ group,
+ordinal_lm <- ordLORgee(uti ~ as.factor(group),
                         data = catheter,
                         id = subject,
                         repeated = time)
@@ -69,3 +78,29 @@ ordinal_lm <- ordLORgee(uti ~ group,
 summary(ordinal_lm)
 ```
 
+The p-value associated with the group estimate is 0.716. This is greater than our cutoff of 0.05, which does not give us sufficient evidence to reject $H_0$. This suggests that group is not associated with level 1 vs level 2 and 3 UTI or level 1 and 2 vs level 3 UTI at the 5% significance level.
+
+## Question 3 (b)
+```{r}
+# (exp(-1.09738) / (1 + exp(-1.09738))) - (exp(-(3.33313) + (-0.08300)) / (1 + exp((-3.33313) + (-0.08300))))
+
+# (exp((-1.09738) + (-0.08300)) / (1 + exp((-1.09738) + (-0.08300)))) - (exp((-3.33313) + (-0.08300)) / (1 + exp((-3.33313) + (-0.08300))))
+```
+
+$\text{Pr(UTI)}_1 = \gamma_1 - \gamma_0$ where $\gamma_1$ is the cumulative probability of level 1 and 2 UTI and $\gamma_0$ is the probability of level 1 UTI.
+
+For group 1,
+
+$\gamma_0 = \frac{e^{\alpha_0}}{1 + e^{\alpha_0}} = 0.0345$
+
+$\gamma_1 = \frac{e^{\alpha_1}}{1 + e^{\alpha_1}} = 0.2502$
+
+$\text{Pr(UTI)}_1 = \gamma_1 - \gamma_0 = 0.2184$
+
+For group 2, 
+
+$\gamma_0 = \frac{e^{(\alpha_0 + \beta_{0x}^T)}}{1 + e^{(\alpha_0 + \beta_{0x}^T)}} = 0.0318$
+
+$\gamma_1 = \frac{e^{(\alpha_1 + \beta_{1x}^T)}}{1 + e^{(\alpha_1 + \beta_{1x}^T)}} = 0.2350$
+
+$\text{Pr(UTI)}_1 = \gamma_1 - \gamma_0 = 0.2032$

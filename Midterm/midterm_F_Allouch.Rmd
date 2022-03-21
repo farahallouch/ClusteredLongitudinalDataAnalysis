@@ -227,3 +227,212 @@ The estimate of $\mu$ is 12.60; 95% CI: (11.91, 13.28) at time 12.
 $$\text{ICC} = \frac{\widehat{\nu^2}}{\widehat{\nu^2} + \widehat{\sigma^2}} = \frac{\text{(SD of intercept)}^2}{\text{(SD of intercept)}^2 + \text{(SD of residuals)}^2} = \frac{(4.107199)^2}{(4.107199)^2 + (2.51592)^2} = 0.7271$$
 
 ## Question 2 (d)
+$$\text{HAMD}_{ij} = \mu + \epsilon_{it}, \epsilon_{it} \sim N(0, \sigma_{it}^2)$$ 
+
+where $\sigma_{it}^2$ is the 5th diagonal term of $Z^TDZ$
+
+```{r}
+library(geepack)
+
+gee_estimate <- geeglm(HAMD ~ time,
+                       data = dat_c_long,
+                       id = id,
+                       family = gaussian)
+
+summary(gee_estimate)
+
+## Time 0
+# 17.7692 - (1.96 * 0.3722)
+# 17.7692 + (1.96 * 0.3722)
+
+## Time 3
+# 17.7692 -2.3846
+# 17.7692 -2.3846 - (1.96 * 0.5619)
+# 17.7692 -2.3846 + (1.96 * 0.5619)
+
+## Time 6
+# 17.7692 -3.5096
+# 17.7692 -3.5096 - (1.96 * 0.6211)
+# 17.7692 -3.5096 + (1.96 * 0.6211)
+
+## Time 9
+# 17.7692 -4.4808
+# 17.7692 -4.4808 - (1.96 * 0.6454)
+# 17.7692 -4.4808 + (1.96 * 0.6454)
+
+## Time 12
+# 17.7692 -5.1731
+# 17.7692 -5.1731 - (1.96 * 0.6341)
+# 17.7692 -5.1731 + (1.96 * 0.6341)
+```
+
+The estimate of $\mu$ is 17.77; 95% CI: (17.04, 18.50) at time 0.
+
+The estimate of $\mu$ is 15.38; 95% CI: (14.28, 16.49) at time 3.
+
+The estimate of $\mu$ is 14.26; 95% CI: (13.04, 15.48) at time 6.
+
+The estimate of $\mu$ is 13.29; 95% CI: (12.02, 14.55) at time 9.
+
+The estimate of $\mu$ is 12.60; 95% CI: (11.35, 13.84) at time 12.
+
+Comparing the $\mu$ estimates from the LMM and GEE model, we see that the point estimates are exactly the same for each time period; however, the standard deviations and 95% CI in the GEE models are slightly bigger. This makes sense, as GEE uses a non-parametric approach to estimating $\mu$, which results in larger standard deviations of estimates.
+
+\newpage
+# Question 3
+## Question 3 (a)
+```{r}
+# reordering for reshape
+dat <- dat %>% 
+  select(id, sex, marriage, Treatment, HAMD_0, depd_0,
+         HAMD_3, HAMD_6, HAMD_9, HAMD_12,
+         depd_3, depd_6, depd_9, depd_12) 
+
+dat_long_3 <- reshape(dat,
+                      direction = "long",
+                      varying = 7:14,
+                      sep = "_")
+
+dat_long_3 <- dat_long_3 %>% 
+  mutate(time = factor(time, levels = c(12, 3, 6, 9)))
+
+model_3 <- lme(HAMD ~ Treatment * time + sex + marriage + HAMD_0,
+               data = dat_long_3,
+               random = ~ HAMD_0 | id)
+
+summary(model_3)
+```
+
+$\widehat{\sigma^2} = \text{(SD of residual)}^2 = (1.9156)^2 = 3.67$
+
+$\widehat{\nu^2} = \text{(SD of intercept)}^2 = (1.0918)^2 = 1.192$
+
+## Question 3 (b)
+```{r}
+anova(model_3)
+```
+
+From the type-3 test results above, we can see that Treatment, time, and HAMD_0 have p-values < 0.05. This gives us sufficient evidence to reject $H_0$, which suggests that treatment, time, and HAMD_0 are all significant predictors in the fixed effect component.
+
+## Question 3 (c)
+Since time = 12 is the referent level, we can evaluate the treatment effect by looking at the p-value for Treatment, which is < 0.0001. This gives us sufficient evidence to reject $H_0$, which suggests that for subjects with the same gender, baseline HamD, and marriage status, there is a significant difference between the two treatments at month 12.
+
+## Question 3 (d)
+```{r}
+dat_long_3 <- dat_long_3 %>% 
+  arrange(id)
+
+predict(model_3, dat_long_3[1:4, ], level = 0) + 1.396156 + (-0.309038)
+
+dat_long_3 %>% 
+  filter(id == 1) %>% 
+  select(id, sex, marriage, Treatment, HAMD_0) %>% 
+  view()
+```
+
+To get the fitted values for this participant at each visit, we use the fixed and random effects estimates.
+
+* For time = 3, $\text{HAMD} = 1.396156 + (-0.309038) + 4.306 + (-6.098 \times 0) + (2.788 \times 1) + (1.663 \times 0) + (0.692 \times 0) + (0.235 \times 1) + (-1.208 \times 0) + (-0.506 \times 0) + (0.445 \times 15) + (0.621 \times 0 \times 1) + (0.327 \times 0 \times 0) + (-0.301 \times 0 \times 0) = 15.09$
+
+* For time = 6, $\text{HAMD} = 1.396156 + (-0.309038) + 4.306 + (-6.098 \times 0) + (2.788 \times 1) + (1.663 \times 0) + (0.692 \times 0) + (0.235 \times 1) + (-1.208 \times 0) + (-0.506 \times 0) + (0.445 \times 15) + (0.621 \times 0 \times 1) + (0.327 \times 0 \times 0) + (-0.301 \times 0 \times 0) = 13.97$
+
+* For time = 9, $\text{HAMD} = 1.396156 + (-0.309038) + 4.306 + (-6.098 \times 0) + (2.788 \times 0) + (1.663 \times 0) + (0.692 \times 1) + (0.235 \times 1) + (-1.208 \times 0) + (-0.506 \times 0) + (0.445 \times 15) + (0.621 \times 0 \times 0) + (0.327 \times 0 \times 0) + (-0.301 \times 0 \times 1) = 13.00$
+
+* For time = 12, $\text{HAMD} = 1.396156 + (-0.309038) + 4.306 + (-6.098 \times 0) + (2.788 \times 0) + (1.663 \times 0) + (0.692 \times 0) + (0.235 \times 1) + (-1.208 \times 0) + (-0.506 \times 0) + (0.445 \times 15) + (0.621 \times 0 \times 0) + (0.327 \times 0 \times 0) + (-0.301 \times 0 \times 0) = 12.30$
+
+We can also find these values by adding the random effects of ID = 1 to the predicted fitted values
+```{r}
+predict(model_3, dat_long_3[1:4, ], level = 0) + 1.396156 + (-0.309038)
+```
+
+\newpage
+# Question 4
+## Question 4 (a)
+```{r}
+gee_4 <- geeglm(HAMD ~ Treatment * time + sex + marriage + HAMD_0,
+                data = dat_long_3,
+                id = id,
+                waves = time,
+                family = gaussian,
+                corstr = "independence",
+                scale.fix = TRUE)
+
+anova(gee_4)
+```
+
+Based on the type-3 test results above, the p-value for the interaction between treatment and time is 0.11, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that the interaction between treatment and time is not significant.
+
+## Question 4 (b)
+Treatment, time, and HAMD_0 all have p-values < 0.05. This gives us sufficient evidence to reject $H_0$, which suggests that treatment, time, and HAMD_0 are all significant predictors of the outcome.
+
+## Question 4 (c)
+```{r}
+summary(gee_4)
+```
+
+Since time = 12 is the referent level, we can evaluate the treatment effect by looking at the p-value for Treatment, which is < 0.0001. This gives us sufficient evidence to reject $H_0$, which suggests that for subjects with the same gender, baseline HamD, and marriage status, there is a significant difference between the two treatments at month 12.
+
+## Question 4 (d)
+```{r}
+predict(gee_4, dat_long_3[1:4, ], level = 0)
+```
+
+The predicted mean values for ID = 1 are
+
+For time = 3, HAMD = 14.3
+
+For time = 6, HAMD = 13.2
+
+For time = 9, HAMD = 12.2
+
+For time = 12, HAMD = 11.5
+
+\newpage
+# Question 5
+## Question 5 (a)
+```{r}
+library(lme4)
+
+glmm_4 <- glmer(depd ~ Treatment + time + sex + marriage + HAMD_0 + (1 | id),
+                data = dat_long_3,
+                family = binomial(link = "logit"))
+
+summary(glmm_4)
+```
+
+Since time = 12 is the referent level, we can evaluate the treatment effect by looking at the p-value for Treatment, which is < 0.0001. This gives us sufficient evidence to reject $H_0$, which suggests that for subjects with the same gender, baseline HamD, and marriage status, there is a significant difference between the two treatments at month 12.
+
+## Question 5 (b)
+```{r}
+head(ranef(glmm_4)$id, 1)
+```
+
+To get the fitted values for this participant at each visit, we use the fixed and random effects estimates.
+
+* For time = 3, $Pr(\text{depd = 1}) = \frac{e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}}{1 + e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}} = 0.818$
+
+* For time = 6, $Pr(\text{depd = 1}) = \frac{e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 0) + (5.432 \times 1) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}}{1 + e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}} = 0.47$
+
+* For time = 9, $Pr(\text{depd = 1}) = \frac{e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 0) + (5.432 \times 0) + (0.726 \times 1) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}}{1 + e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 0) + (5.432 \times 0) + (0.726 \times 1) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}} = 0.00795$
+
+* For time = 12, $Pr(\text{depd = 1}) = \frac{e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}}{1 + e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}} = 0.00386$
+
+## Question 5 (c)
+$\widehat{\nu^2} = \text{(SD of intercept)}^2 = (5.93)^2 = 35.2$
+
+If $\widehat{\nu^2} = 0$, we can say that there is no correlation among repeated measurements for the same subject.
+
+## Question 5 (d)
+```{r}
+gee_5 <- geeglm(depd ~ Treatment + time + sex + marriage + HAMD_0,
+                data = dat_long_3,
+                id = id,
+                waves = time,
+                family = binomial(link = "logit"),
+                corstr = "independence",
+                scale.fix = TRUE)
+
+anova(gee_5)
+```
+
+Since time = 12 is the referent level, we can evaluate the treatment effect by looking at the p-value for Treatment, which is < 0.0001. This gives us sufficient evidence to reject $H_0$, which suggests that for subjects with the same gender, baseline HamD, and marriage status, there is a significant difference between the two treatments at month 12.

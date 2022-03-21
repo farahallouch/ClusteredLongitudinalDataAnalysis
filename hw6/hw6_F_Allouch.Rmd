@@ -21,6 +21,13 @@ library(tidyverse)
 \newpage
 # Question 1
 ## Question 1 (a)
+```{r}
+# 1 - pf(2.19, 2, 392)
+# 1-pf(1.21,2,392)
+# 1-pf(1.69,2,392)
+# 1-pf(1.52,4,392)
+```
+
 Compared to MS = 3, MS = 1 is a significant predictor of no depression compared to major depression (p < 0.05). No other predictors are significant.
 
 Calculating the p-values from the type 3 tests for the variables, none of them are significant. The p-values are 0.11, 0.30, 0.19, and 0.20, respectively. So even though MS = 1 compared to MS = 3 is a significant predictor of no depression vs major depression, overall MS is not a significant predictor of depression.
@@ -35,6 +42,13 @@ $\text{Pr(Minor)} = \frac{e^{(r_{i1} + \alpha_1 + \beta^T_{x1})}}{(1 + e^{(r_{i1
 \newpage
 # Question 2
 ## Question 2 (a)
+```{r}
+# 1-pf(1.68,1,587)
+# 1-pf(2.52,1,587)
+# 1-pf(0.62,1,587)
+# 1-pf(2.75,2,587)
+```
+
 Compared to MS = 3, MS = 1 is a significant predictor of no depression compared to minor and major depression AND no and minor depression compared to major depression (p < 0.05). No other predictors are significant.
 
 Calculating the p-values from the type 3 tests for the variables, none of them are significant. The p-values are 0.20, 0.11, 0.43, and 0.06, respectively. So even though MS = 1 compared to MS = 3 is a significant predictor of no depression compared to minor and major depression AND no and minor depression compared to major depression, overall MS is not a significant predictor of depression.

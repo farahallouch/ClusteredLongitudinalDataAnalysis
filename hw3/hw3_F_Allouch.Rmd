@@ -62,6 +62,7 @@ summary(random_int)
 Since the first visit is our reference group, $\beta_{visit_{12}}$ and $\beta_{visit_{24}}$ and their p-values are comparing visit 12 and 24 to the first visit. The p-values for these $\beta \text{s}$ are 0.661 and 0.209, which are both greater than our threshold of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests there are no significant differences between the first and second visit and the first and third visit.
 
 ```{r}
+# anova(lm, L = matrix(c(0, 0, 0, -1, 0, 1, 0, 0, 0, -1, 1, 0),nrow=2,byrow = T))
 broom::tidy(multcomp::glht(random_int, linfct = matrix(c(0, 0, 0, 1, -1, 0), 1)))
 ```
 
@@ -71,6 +72,7 @@ So overall, we conclude that there are no significant differences among the thre
 
 ## Question 1 (d)
 ```{r}
+# VarCorr(lm)
 summary(random_int)
 ```
 
@@ -114,6 +116,8 @@ $\widehat{\mu^2} = \text{(SD of CIRSTTL)}^2 = (0.32239)^2 = 0.104$
 
 ## Question 2 (c)
 ```{r}
+# anova(lm,lm2)
+
 library(lmtest)
 
 lrtest(random_int, random_slope_ind)
@@ -123,6 +127,8 @@ Using a likelihood ratio test comparing the nested models: one with the random i
 
 ## Question 2 (d)
 ```{r}
+# predict(lm2, v4c[913:916,], level = 0)
+
 dat %>% 
   filter(UNIT_ID == "ZIL8618D") %>% 
   select(UNIT_ID, VISIT, GENDER, CIRSTTL) %>% 

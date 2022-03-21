@@ -1,7 +1,7 @@
 ---
 title: "Clustered & Longitudinal Data Analysis HW 1"
 author: "Farah Allouch"
-date: "`r format(Sys.time(), ' %B %d, %Y')`"
+date"`r format(Sys.time(), ' %B %d, %Y')`"
 output: 
   pdf_document:
     toc: true
@@ -171,6 +171,9 @@ ggplot(data = random_sample_long_t, aes(x = time, y = PHQ, group = id, color = i
 
 **Visit 0, control**
 ```{r}
+# aggregate(hw01[,3:8], list(hw01$Treatment), mean,na.rm=T)
+# aggregate(hw01[,3:8], list(hw01$Treatment), sd, na.rm=T)
+
 mean_sd <- function(a){
   mean <- mean(a, na.rm = TRUE)
   sd <- sd(a, na.rm = TRUE)
@@ -243,11 +246,28 @@ independent_lm <- lm(PHQ ~ as.factor(Treatment) + time,
 summary(independent_lm)
 ```
 
-Using a linear regression model with treatment as the predictor and PHQ as the outcome, assuming independence of outcomes, the coefficient estimate of treatment is -3.52, with a p-value < 0.001. This can be interpreted as, holding all other covariates constant, compared to the control group, treatment is associated with a -3.12 change in PHQ. The p-value of this estimate is less than our cutoff of 0.05, which gives us sufficient evidence to reject $H_0$, suggesting that treatment is significantly associated with PHQ.
+Using a linear regression model with treatment as the predictor and PHQ as the outcome, assuming independence of outcomes, the coefficient estimate of treatment is -3.52, with a p-value < 0.001. This can be interpreted as, holding all other covariates constant, compared to the control group, treatment is associated with a -3.52 change in PHQ. The p-value of this estimate is less than our cutoff of 0.05, which gives us sufficient evidence to reject $H_0$, suggesting that treatment is significantly associated with PHQ.
 
 ## Question 4 (c)
 ```{r}
-# residuals(independent_lm) should fix this
+# time0=residuals(lg)[long01$time==0]
+# time1=residuals(lg)[long01$time==1]
+# time3=residuals(lg)[long01$time==3]
+# time6=residuals(lg)[long01$time==6]
+# time9=residuals(lg)[long01$time==9]
+# time12=residuals(lg)[long01$time==12]
+# 
+# panel.cor <- function(x, y){
+#   usr <- par("usr"); on.exit(par(usr))
+#   par(usr = c(0, 1, 0, 1))
+#   r <- round(cor(x, y, use="pairwise.complete.obs"), digits=2)
+#   txt <- paste0(r)
+#   cex.cor <- 0.8/strwidth(txt)
+#   text(0.5, 0.5, txt, cex = 0.5 * cex.cor * r)
+# }
+# 
+# pairs(cbind(time0, time1, time3, time6, time9, time12), upper.panel=panel.cor)
+
 visit0 <- independent_lm$residuals[dat_long$time == 0]
 visit1 <- independent_lm$residuals[dat_long$time == 1]
 visit3 <- independent_lm$residuals[dat_long$time == 3]

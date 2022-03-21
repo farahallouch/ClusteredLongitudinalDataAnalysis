@@ -67,6 +67,13 @@ and where no assumptions assumed for $\Sigma$ since the repeated measures are tr
 
 ## Question 2 (b)
 ```{r}
+# Fixed effects (this model also gives rho (ICC) directly)
+# library(nlme)
+# glsCS <- gls(model = score ~ as.factor(time),
+#              data = bb,
+#              correlation = corCompSymm(form =~ 1|id))
+# summary(glsCS)
+
 mixed_model <- nlme::lme(score ~ subject,
                          data = dat_long,
                          random = ~ 1 | student)
@@ -99,6 +106,13 @@ $$
 
 ## Question 3 (a)
 ```{r}
+# library(nlme)
+# glsUN <- gls(model = score ~ as.factor(time),
+# data = bb, correlation = corSymm(form =~ as.numeric(time)|id),
+# weights = varIdent(form =~ 1|time),
+# na.action = na.omit)
+# summary(glsUN)
+
 library(nlme)
 
 mixed_model_2 <- gls(score ~ subject,

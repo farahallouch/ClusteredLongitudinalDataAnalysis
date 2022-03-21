@@ -1,0 +1,229 @@
+---
+title: "Clustered & Longitudinal Data Analysis midterm"
+author: "Farah Allouch"
+date: "`r format(Sys.time(), ' %B %d, %Y')`"
+output: 
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE,
+                      message = FALSE)
+
+rm(list = ls())
+options(scipen = 999)
+
+library(tidyverse)
+```
+
+\newpage
+# Question 1
+## Question 1 (a)
+```{r}
+dat <- read.csv("mid.csv")
+dat <- dat %>% 
+  mutate(sex = as.factor(sex),
+         marriage = as.factor(marriage))
+
+dat_t <- dat %>% 
+  filter(Treatment == 1)
+
+dat_c <- dat %>% 
+  filter(Treatment == 0)
+```
+
+**Sex**
+```{r}
+table(dat_t$sex)
+table(dat_c$sex)
+
+chisq.test(x = c(40, 70),
+           y = c(41, 63))
+```
+
+We conduct a $\chi^2$ test of independence to analyze balance of sex between treatment and control groups. However, as we can see, the $\chi^2$ approximation may not be accurate due to small sample size, so we use Fisher's test instead.
+
+```{r}
+fisher.test(x = c(40, 70),
+            y = c(41, 63))
+```
+
+Fisher's test produces a p-value very close to 1, which is greater than our threshold of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that sex is balanced across treatment and control groups at the 5% significance level.
+
+**Marriage**
+```{r}
+table(dat_t$marriage)
+table(dat_c$marriage)
+
+chisq.test(x = c(89, 0, 0, 21),
+           y = c(87, 2, 0, 15))
+```
+
+We conduct a $\chi^2$ test of independence to analyze balance of marriage between treatment and control groups. However, as we can see, the $\chi^2$ approximation may not be accurate due to small sample size, so we use Fisher's test instead.
+
+```{r}
+fisher.test(x = c(89, 0, 0, 21),
+            y = c(87, 2, 0, 15))
+```
+
+Fisher's test produces a p-value very close to 1, which is greater than our threshold of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that marriage is balanced across treatment and control groups at the 5% significance level.
+
+**HAMD_0**
+```{r}
+qqnorm(y = dat$HAMD_0)
+qqline(y = dat$HAMD_0)
+
+shapiro.test(dat$HAMD_0)
+```
+
+As we can see from the QQ-plot and the Shapiro-Wilk normality test above, the HAMD_0 variable is not normally distributed in the data. We know this because the QQ-plot of HAMD_0 shows substantial divergence from the plot of the normal distribution, and the Shapiro-Wilk test produces a p-value (p < 0.0001) less than our cutoff of 0.05, which gives us sufficient evidence to reject the null hypothesis that HAMD_0 follows a normal distribution at the 5% significance level.
+
+Thus we use the Wilcoxon two-sample rank-sum test (non-parametric model) to test if HAMD_0 is balanced across the treatment and control groups.
+
+```{r}
+wilcox.test(dat_t$HAMD_0,
+            dat_c$HAMD_0)
+```
+
+As we can see, the Wilcoxon two-sample rank-sum test produces a p-value of 0.099, which does **not** give us sufficient evidence to reject the null hypothesis that the HAMD_0 distribution across treatment and control groups is balanced at the 5% significance level.
+
+**DEPD_0**
+```{r}
+table(dat_t$depd_0)
+table(dat_c$depd_0)
+
+chisq.test(x = c(0, 110),
+           y = c(0, 104))
+```
+
+We conduct a $\chi^2$ test of independence to analyze balance of depd_0 between treatment and control groups. However, as we can see, the $\chi^2$ approximation may not be accurate due to small sample size, so we use Fisher's test instead.
+
+```{r}
+fisher.test(x = c(0, 110),
+            y = c(0, 104))
+```
+
+Fisher's test produces a p-value very close to 1, which is greater than our threshold of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that depd_0 is balanced across treatment and control groups at the 5% significance level.
+
+## Question 1 (b)
+**Mean**
+```{r}
+aggregate(dat[ , 4:8], list(dat$Treatment), mean , na.rm = TRUE)
+```
+
+**Standard deviation**
+```{r}
+aggregate(dat[ , 4:8], list(dat$Treatment), sd, na.rm = TRUE)
+```
+
+## Question 1 (c)
+```{r}
+dat_long <- reshape(dat,
+                    direction = "long",
+                    varying = 4:13,
+                    sep = "_")
+
+dat_long <- dat_long %>% 
+  mutate(time = as.factor(time))
+
+simple_lm <- lm(HAMD ~ Treatment * time + sex + marriage,
+                data = dat_long)
+
+anova(simple_lm)
+```
+
+The type 3 test for the model produces a p-value of < 0.0001 for the coefficient of the interaction between treatment and time. This gives us sufficient evidence to reject $H_0$, which suggests that there is an interaction between treatment and time on the outcome at the 5% significance level.
+
+## Question 1 (d)
+```{r}
+time0 <- residuals(simple_lm)[dat_long$time == 0]
+time3 <- residuals(simple_lm)[dat_long$time == 3]
+time6 <- residuals(simple_lm)[dat_long$time == 6]
+time9 <- residuals(simple_lm)[dat_long$time == 9]
+time12 <- residuals(simple_lm)[dat_long$time == 12]
+
+panel.cor <- function(x, y){
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  r <- round(cor(x, y, use="pairwise.complete.obs"), digits=2)
+  txt <- paste0(r)
+  cex.cor <- 0.8/strwidth(txt)
+  text(0.5, 0.5, txt, cex = 0.5 * cex.cor * r)
+}
+
+pairs(cbind(time0, time3, time6, time9, time12),
+      upper.panel = panel.cor)
+```
+
+The above graph plots the scatterplots of the residuals and their correlations for the linear model in (c).
+
+As we can see, there is significant correlation among the residuals, ranging from 0.4 to 0.93. For example, the correlation of the residuals between time = 0 and time = 3 is 0.5, and the correlation of the residuals between time = 9 and time = 12 is 0.93.
+
+This indicates that the HAMD scores at different time points are correlated, which indicates that we must use statistical methods that account for non-independence of outcomes to assess the relationship between the treatment and outcome.
+
+\newpage
+# Question 2
+## Question 2 (a)
+$$\text{HAMD}_{ij} = \mu + \epsilon_{ij}$$
+
+where $\epsilon_{ij} = (\epsilon_{i0}, \epsilon_{i3}, \epsilon_{i6}, \epsilon_{i9}, \epsilon_{i12}) \sim N(0, \sigma^2I_5) + \nu^2J_5$ where $J_5$ is the 5 x 5 matrix with all entries 1.
+
+## Question 2 (b)
+```{r}
+dat_c_long <- reshape(dat_c,
+                      direction = "long",
+                      varying = 4:13,
+                      sep = "_")
+
+dat_c_long <- dat_c_long %>% 
+  mutate(time = as.factor(time))
+
+library(nlme)
+
+mu_estimate <- lme(HAMD ~ time,
+                   data = dat_c_long,
+                   random = ~ 1 | id)
+
+summary(mu_estimate)
+
+## Time 0
+# 17.769231 - (1.96 * 0.4722994)
+# 17.769231 + (1.96 * 0.4722994)
+
+## Time 3
+# 17.769231 -2.384615
+# 17.769231 -2.384615 - (1.96 * 0.3488954)
+# 17.769231 -2.384615 + (1.96 * 0.3488954)
+
+## Time 6
+# 17.769231 -3.509615
+# 17.769231 -3.509615 - (1.96 * 0.3488954)
+# 17.769231 -3.509615 + (1.96 * 0.3488954)
+
+## Time 9
+# 17.769231 -4.480769
+# 17.769231 -4.480769 - (1.96 * 0.3488954)
+# 17.769231 -4.480769 + (1.96 * 0.3488954)
+
+## Time 12
+# 17.769231 -5.173077
+# 17.769231 -5.173077 - (1.96 * 0.3488954)
+# 17.769231 -5.173077 + (1.96 * 0.3488954)
+```
+
+The estimate of $\mu$ is 17.77; 95% CI: (16.84, 18.69) at time 0.
+
+The estimate of $\mu$ is 15.38; 95% CI: (14.70, 16.07) at time 3.
+
+The estimate of $\mu$ is 14.26; 95% CI: (13.58, 14.94) at time 6.
+
+The estimate of $\mu$ is 13.29; 95% CI: (12.60, 13.97) at time 9.
+
+The estimate of $\mu$ is 12.60; 95% CI: (11.91, 13.28) at time 12.
+
+## Question 2 (c)
+$$\text{ICC} = \frac{\widehat{\nu^2}}{\widehat{\nu^2} + \widehat{\sigma^2}} = \frac{\text{(SD of intercept)}^2}{\text{(SD of intercept)}^2 + \text{(SD of residuals)}^2} = \frac{(4.107199)^2}{(4.107199)^2 + (2.51592)^2} = 0.7271$$
+
+## Question 2 (d)

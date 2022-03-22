@@ -83,10 +83,14 @@ We conduct a $\chi^2$ test of independence to analyze balance of baseline depres
 aggregate(dat[ , 4:8], list(dat$Treatment), mean , na.rm = TRUE)
 ```
 
+The mean HAMD scores generally gets smaller at each follow-up visit, and the mean HAMD scores for the treatment group appear smaller than the control group.
+
 **Standard deviation**
 ```{r}
 aggregate(dat[ , 4:8], list(dat$Treatment), sd, na.rm = TRUE)
 ```
+
+The standard deviation of HAMD scores generally gets larger for the control group and smaller for the treatment group, and the standard deviation of HAMD scores for the treatment group appear smaller than the control group.
 
 ## Question 1 (c)
 ```{r}
@@ -376,7 +380,7 @@ glmm_4 <- glmer(depd ~ Treatment + time + sex + marriage + HAMD_0 + (1 | id),
 summary(glmm_4)
 ```
 
-Since there is no interaction term between treatment and time, we can evaluate the treatment effect at any time point by looking at the p-value for Treatment, which is < 0.0001. This gives us sufficient evidence to reject $H_0$, which suggests that for subjects with the same gender, baseline HamD, and marriage status, there is a significant difference between the two treatments at month 12.
+Since there is no interaction term between treatment and time, we can evaluate the treatment effect by looking at the p-value for Treatment, which is < 0.0001. This gives us sufficient evidence to reject $H_0$, which suggests that for subjects with the same gender, baseline HamD, and marriage status, there is a significant difference between the two treatments at month 12.
 
 ## Question 5 (b)
 ```{r}
@@ -389,11 +393,11 @@ To get the fitted values for this participant at each visit, we use the fixed an
 
 * For time = 3, $Pr(\text{depd = 1}) = \frac{e^{(-10.41054 + (0.42208424) + (-4.76362601 \times 0) + (-0.00000281 \times 3) + (0.34343638 \times 1) + (-1.58462749 \times 0) + (0.38464159 \times 0) + (0.17464271 \times 15))}}{1 + e^{(-10.41054 + (0.42208424) + (-4.76362601 \times 0) + (-0.00000281 \times 3) + (0.34343638 \times 1) + (-1.58462749 \times 0) + (0.38464159 \times 0) + (0.17464271 \times 15))}} = 0.00088$
 
-* For time = 6, $Pr(\text{depd = 1}) = \frac{e^{(-10.41054 + (-0.456) + (-11.435 \times 0) + (7.058 \times 0) + (5.432 \times 1) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}}{1 + e^{(-10.41054 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}} = 0.47$
+* For time = 6, $Pr(\text{depd = 1}) = \frac{e^{(-10.41054 + (0.42208424) + (-4.76362601 \times 0) + (-0.00000281 \times 6) + (0.34343638 \times 1) + (-1.58462749 \times 0) + (0.38464159 \times 0) + (0.17464271 \times 15))}}{1 + e^{(-10.41054 + (0.42208424) + (-4.76362601 \times 0) + (-0.00000281 \times 6) + (0.34343638 \times 1) + (-1.58462749 \times 0) + (0.38464159 \times 0) + (0.17464271 \times 15))}} = 0.00088$
 
-* For time = 9, $Pr(\text{depd = 1}) = \frac{e^{(-10.41054 + (-0.456) + (-11.435 \times 0) + (7.058 \times 0) + (5.432 \times 0) + (0.726 \times 1) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}}{1 + e^{(-10.41054 + (-0.456) + (-11.435 \times 0) + (7.058 \times 0) + (5.432 \times 0) + (0.726 \times 1) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}} = 0.00795$
+* For time = 9, $Pr(\text{depd = 1}) = \frac{e^{(-10.41054 + (0.42208424) + (-4.76362601 \times 0) + (-0.00000281 \times 9) + (0.34343638 \times 1) + (-1.58462749 \times 0) + (0.38464159 \times 0) + (0.17464271 \times 15))}}{1 + e^{(-10.41054 + (0.42208424) + (-4.76362601 \times 0) + (-0.00000281 \times 9) + (0.34343638 \times 1) + (-1.58462749 \times 0) + (0.38464159 \times 0) + (0.17464271 \times 15))}} = 0.00088$
 
-* For time = 12, $Pr(\text{depd = 1}) = \frac{e^{(-10.41054 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}}{1 + e^{(-10.41054 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}} = 0.00386$
+* For time = 12, $Pr(\text{depd = 1}) = \frac{e^{(-10.41054 + (0.42208424) + (-4.76362601 \times 0) + (-0.00000281 \times 12) + (0.34343638 \times 1) + (-1.58462749 \times 0) + (0.38464159 \times 0) + (0.17464271 \times 15))}}{1 + e^{(-10.41054 + (0.42208424) + (-4.76362601 \times 0) + (-0.00000281 \times 12) + (0.34343638 \times 1) + (-1.58462749 \times 0) + (0.38464159 \times 0) + (0.17464271 \times 15))}} = 0.00088$
 
 ## Question 5 (c)
 $\widehat{\nu^2} = \text{(SD of intercept)}^2 = (2.26)^2 = 5.11$
@@ -413,4 +417,4 @@ gee_5 <- geeglm(depd ~ Treatment + time + sex + marriage + HAMD_0,
 anova(gee_5)
 ```
 
-Since there is no interaction term between treatment and time, we can evaluate the treatment effect at any time point by looking at the p-value for Treatment, which is < 0.0001. This gives us sufficient evidence to reject $H_0$, which suggests that for subjects with the same gender, baseline HamD, and marriage status, there is a significant difference between the two treatments at month 12.
+Since there is no interaction term between treatment and time, we can evaluate the treatment effect by looking at the p-value for Treatment, which is < 0.0001. This gives us sufficient evidence to reject $H_0$, which suggests that for subjects with the same gender, baseline HamD, and marriage status, there is a significant difference between the two treatments at month 12.

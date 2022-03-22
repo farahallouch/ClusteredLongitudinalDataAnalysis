@@ -36,39 +36,19 @@ dat_c <- dat %>%
 
 **Sex**
 ```{r}
-table(dat_t$sex)
-table(dat_c$sex)
-
-chisq.test(x = c(40, 70),
-           y = c(41, 63))
+chisq.test(table(dat$Treatment,
+                 dat$sex))
 ```
 
-We conduct a $\chi^2$ test of independence to analyze balance of sex between treatment and control groups. However, as we can see, the $\chi^2$ approximation may not be accurate due to small sample size, so we use Fisher's test instead.
-
-```{r}
-fisher.test(x = c(40, 70),
-            y = c(41, 63))
-```
-
-Fisher's test produces a p-value very close to 1, which is greater than our threshold of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that sex is balanced across treatment and control groups at the 5% significance level.
+We conduct a $\chi^2$ test of independence to analyze balance of sex between treatment and control groups. As we can see, the $\chi^2$ test produces a p-value of 0.75, which is greater than our threshold of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that sex is balanced across treatment and control groups at the 5% significance level.
 
 **Marriage**
 ```{r}
-table(dat_t$marriage)
-table(dat_c$marriage)
-
-chisq.test(x = c(89, 0, 0, 21),
-           y = c(87, 2, 0, 15))
+chisq.test(table(dat$Treatment,
+                 dat$marriage))
 ```
 
-We conduct a $\chi^2$ test of independence to analyze balance of marriage between treatment and control groups. However, as we can see, the $\chi^2$ approximation may not be accurate due to small sample size, so we use Fisher's test instead.
-
-```{r}
-fisher.test(x = c(89, 0, 0, 21),
-            y = c(87, 2, 0, 15))
-```
-
-Fisher's test produces a p-value very close to 1, which is greater than our threshold of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that marriage is balanced across treatment and control groups at the 5% significance level.
+We conduct a $\chi^2$ test of independence to analyze balance of marriage between treatment and control groups. As we can see, the $\chi^2$ test produces a p-value of 0.24, which is greater than our threshold of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that marriage is balanced across treatment and control groups at the 5% significance level.
 
 **HAMD_0**
 ```{r}
@@ -91,21 +71,11 @@ As we can see, the Wilcoxon two-sample rank-sum test produces a p-value of 0.099
 
 **DEPD_0**
 ```{r}
-table(dat_t$depd_0)
-table(dat_c$depd_0)
-
-chisq.test(x = c(0, 110),
-           y = c(0, 104))
+chisq.test(table(dat$Treatment,
+                 dat$depd_0))
 ```
 
-We conduct a $\chi^2$ test of independence to analyze balance of depd_0 between treatment and control groups. However, as we can see, the $\chi^2$ approximation may not be accurate due to small sample size, so we use Fisher's test instead.
-
-```{r}
-fisher.test(x = c(0, 110),
-            y = c(0, 104))
-```
-
-Fisher's test produces a p-value very close to 1, which is greater than our threshold of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that depd_0 is balanced across treatment and control groups at the 5% significance level.
+We conduct a $\chi^2$ test of independence to analyze balance of baseline depression diagnosis between treatment and control groups. As we can see, the $\chi^2$ test produces a p-value of 0.24, which is greater than our threshold of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that baseline depression diagnosis is balanced across treatment and control groups at the 5% significance level.
 
 ## Question 1 (b)
 **Mean**
@@ -322,13 +292,15 @@ Since time = 12 is the referent level, we can evaluate the treatment effect by l
 dat_long_3 <- dat_long_3 %>% 
   arrange(id)
 
-predict(model_3, dat_long_3[1:4, ], level = 0) + 1.396156 + (-0.309038)
+# model_3$coefficients$random
 
 dat_long_3 %>% 
   filter(id == 1) %>% 
   select(id, sex, marriage, Treatment, HAMD_0) %>% 
   view()
 ```
+
+The random effects of ID = 1 are 1.396156 for the intercept and -0.309038 for the slope.
 
 To get the fitted values for this participant at each visit, we use the fixed and random effects estimates.
 
@@ -341,7 +313,7 @@ To get the fitted values for this participant at each visit, we use the fixed an
 * For time = 12, $\text{HAMD} = 1.396156 + (-0.309038) + 4.306 + (-6.098 \times 0) + (2.788 \times 0) + (1.663 \times 0) + (0.692 \times 0) + (0.235 \times 1) + (-1.208 \times 0) + (-0.506 \times 0) + (0.445 \times 15) + (0.621 \times 0 \times 0) + (0.327 \times 0 \times 0) + (-0.301 \times 0 \times 0) = 12.30$
 
 We can also find these values by adding the random effects of ID = 1 to the predicted fitted values
-```{r}
+```{r, echo = TRUE}
 predict(model_3, dat_long_3[1:4, ], level = 0) + 1.396156 + (-0.309038)
 ```
 
@@ -393,6 +365,10 @@ For time = 12, HAMD = 11.5
 ```{r}
 library(lme4)
 
+# treating time as scalar in this question
+dat_long_3 <- dat_long_3 %>% 
+  mutate(time = as.numeric(time))
+
 glmm_4 <- glmer(depd ~ Treatment + time + sex + marriage + HAMD_0 + (1 | id),
                 data = dat_long_3,
                 family = binomial(link = "logit"))
@@ -400,25 +376,27 @@ glmm_4 <- glmer(depd ~ Treatment + time + sex + marriage + HAMD_0 + (1 | id),
 summary(glmm_4)
 ```
 
-Since time = 12 is the referent level, we can evaluate the treatment effect by looking at the p-value for Treatment, which is < 0.0001. This gives us sufficient evidence to reject $H_0$, which suggests that for subjects with the same gender, baseline HamD, and marriage status, there is a significant difference between the two treatments at month 12.
+Since there is no interaction term between treatment and time, we can evaluate the treatment effect at any time point by looking at the p-value for Treatment, which is < 0.0001. This gives us sufficient evidence to reject $H_0$, which suggests that for subjects with the same gender, baseline HamD, and marriage status, there is a significant difference between the two treatments at month 12.
 
 ## Question 5 (b)
 ```{r}
 head(ranef(glmm_4)$id, 1)
 ```
 
+The random intercept for ID = 1 is -10.41054
+
 To get the fitted values for this participant at each visit, we use the fixed and random effects estimates.
 
-* For time = 3, $Pr(\text{depd = 1}) = \frac{e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}}{1 + e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}} = 0.818$
+* For time = 3, $Pr(\text{depd = 1}) = \frac{e^{(-10.41054 + (0.42208424) + (-4.76362601 \times 0) + (-0.00000281 \times 3) + (0.34343638 \times 1) + (-1.58462749 \times 0) + (0.38464159 \times 0) + (0.17464271 \times 15))}}{1 + e^{(-10.41054 + (0.42208424) + (-4.76362601 \times 0) + (-0.00000281 \times 3) + (0.34343638 \times 1) + (-1.58462749 \times 0) + (0.38464159 \times 0) + (0.17464271 \times 15))}} = 0.00088$
 
-* For time = 6, $Pr(\text{depd = 1}) = \frac{e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 0) + (5.432 \times 1) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}}{1 + e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}} = 0.47$
+* For time = 6, $Pr(\text{depd = 1}) = \frac{e^{(-10.41054 + (-0.456) + (-11.435 \times 0) + (7.058 \times 0) + (5.432 \times 1) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}}{1 + e^{(-10.41054 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}} = 0.47$
 
-* For time = 9, $Pr(\text{depd = 1}) = \frac{e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 0) + (5.432 \times 0) + (0.726 \times 1) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}}{1 + e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 0) + (5.432 \times 0) + (0.726 \times 1) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}} = 0.00795$
+* For time = 9, $Pr(\text{depd = 1}) = \frac{e^{(-10.41054 + (-0.456) + (-11.435 \times 0) + (7.058 \times 0) + (5.432 \times 0) + (0.726 \times 1) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}}{1 + e^{(-10.41054 + (-0.456) + (-11.435 \times 0) + (7.058 \times 0) + (5.432 \times 0) + (0.726 \times 1) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}} = 0.00795$
 
-* For time = 12, $Pr(\text{depd = 1}) = \frac{e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}}{1 + e^{(-10.4 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}} = 0.00386$
+* For time = 12, $Pr(\text{depd = 1}) = \frac{e^{(-10.41054 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}}{1 + e^{(-10.41054 + (-0.456) + (-11.435 \times 0) + (7.058 \times 1) + (5.432 \times 0) + (0.726 \times 0) + (0.159 \times 1) + (-5.429 \times 0) + (-0.599 \times 0) + (0.343 \times 15))}} = 0.00386$
 
 ## Question 5 (c)
-$\widehat{\nu^2} = \text{(SD of intercept)}^2 = (5.93)^2 = 35.2$
+$\widehat{\nu^2} = \text{(SD of intercept)}^2 = (2.26)^2 = 5.11$
 
 If $\widehat{\nu^2} = 0$, we can say that there is no correlation among repeated measurements for the same subject.
 
@@ -435,4 +413,4 @@ gee_5 <- geeglm(depd ~ Treatment + time + sex + marriage + HAMD_0,
 anova(gee_5)
 ```
 
-Since time = 12 is the referent level, we can evaluate the treatment effect by looking at the p-value for Treatment, which is < 0.0001. This gives us sufficient evidence to reject $H_0$, which suggests that for subjects with the same gender, baseline HamD, and marriage status, there is a significant difference between the two treatments at month 12.
+Since there is no interaction term between treatment and time, we can evaluate the treatment effect at any time point by looking at the p-value for Treatment, which is < 0.0001. This gives us sufficient evidence to reject $H_0$, which suggests that for subjects with the same gender, baseline HamD, and marriage status, there is a significant difference between the two treatments at month 12.

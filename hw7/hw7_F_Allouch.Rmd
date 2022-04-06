@@ -1,0 +1,260 @@
+---
+title: "Clustered & Longitudinal Data Analysis HW 7"
+author: "Farah Allouch"
+date: "`r format(Sys.time(), ' %B %d, %Y')`"
+output: 
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE,
+                      message = FALSE)
+
+rm(list = ls())
+options(scipen = 999)
+
+library(tidyverse)
+```
+
+\newpage
+# Question 1
+## Question 1 (a)
+```{r}
+intake <- read.csv("../hw5/intake.csv")
+
+intake <- intake %>% 
+  rename(uti = cp47) %>% 
+  mutate(uti = case_when(uti == "No" ~ 0,
+                                   uti == "Yes" ~ 1), # geeglm() needs outcome to be numeric, not factor
+         ms = as.factor(case_when(ms == 1 ~ 1,
+                                   ms %in% c(2:6) ~ 2,
+                                   ms == 7 ~ 3))) 
+
+model_1 <- glm(uti ~ age + gender + ms,
+               data = intake,
+               family = binomial(link = "logit"))
+
+model_2 <- glm(uti ~ I(age^2) + gender + ms,
+               data = intake,
+               family = binomial(link = "logit"))
+
+model_3 <- glm(uti ~ I(log(age)) + gender + ms,
+               data = intake,
+               family = binomial(link = "logit"))
+
+model_4 <- glm(uti ~ I(sqrt(age)) + gender + ms,
+               data = intake,
+               family = binomial(link = "logit"))
+
+AIC(model_1)
+AIC(model_2)
+AIC(model_3)
+AIC(model_4)
+```
+
+The AICs for the 4 models are
+
+* Model 1: 254.74
+
+* Model 2: 254.40
+
+* Model 3: 255.48
+
+* Model 4: 255.06
+
+The model with the smallest AIC is model 2; however, model 1 has a very similar AIC. As a result, I would prefer model 1 over model 2 because the linear age term is more interpretable.
+
+## Question 1 (b)
+```{r}
+box_tidwell <- car::boxTidwell(formula = uti ~ age,
+                               other.x = ~ gender + ms,
+                               data = intake)
+
+print(box_tidwell)
+```
+
+The p-value from the Box Tidwell test of model 1 produces a p-value of 0.49, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that the first order linear scale of age is suitable.
+
+## Question 1 (c)
+```{r}
+hoslem_test <- ResourceSelection::hoslem.test(model_1$y,
+                                              fitted(model_1),
+                                              g = 10)
+
+print(hoslem_test)
+```
+
+The Hosmer-Lemeshow goodness of fit test produces a p-value of 0.89. This is greater than our cutoff of 0.05, which does not give us sufficient evidence to reject $H_0$. This suggests that model 1 fits the data well.
+
+\newpage
+# Question 2
+## Question 2 (a)
+```{r}
+rm(box_tidwell)
+rm(hoslem_test)
+rm(model_1)
+rm(model_2)
+rm(model_3)
+rm(model_4)
+
+catheter <- read.csv("../hw5/catheter.csv")
+
+intake <- intake %>% 
+  select(subject, age, education)
+
+combined_dat <- full_join(catheter, intake, by = "subject")
+
+combined_dat <- combined_dat %>% 
+  rename(uti = cp47) %>% 
+  mutate(uti = case_when(uti == "No" ~ 0,
+                                   uti == "Yes" ~ 1),
+         gender = as.factor(gender),
+         GROUP = as.factor(GROUP),
+         second = ifelse((time == 8 |
+                            time == 10 |
+                            time == 12), 1, 0)) 
+
+library(lme4)
+
+model_1 <- glmer(uti ~ age + gender + education + GROUP + (1 | subject),
+                 data = combined_dat,
+                 family = binomial(link = "logit"))
+
+model_2 <- glmer(uti ~ age + gender + education + GROUP + second + (1 | subject),
+                 data = combined_dat,
+                 family = binomial(link = "logit"))
+
+model_3 <- glmer(uti ~ age + gender + education + GROUP * second + (1 | subject),
+                 data = combined_dat,
+                 family = binomial(link = "logit"))
+
+AIC(model_1)
+AIC(model_2)
+AIC(model_3)
+```
+
+The AICs for the 3 models are
+
+* Model 1: 986.40
+
+* Model 2: 988.18
+
+* Model 3: 986.07
+
+The model with the smallest AIC is model 3, so I would prefer this model over the others.
+
+## Question 2 (b)
+```{r}
+model_3_rand_slope <- glmer(uti ~ age + gender + education + GROUP * second + (1 + age | subject),
+                            data = combined_dat,
+                            family = binomial(link = "logit"))
+
+summary(model_3_rand_slope)
+
+anova(model_3, model_3_rand_slope)
+```
+
+Comparing model 3 with random intercept and model 3 with random intercept and random slope on age produces a p-value of 0.84, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$. This suggests that the model with random intercept only fits the data just as well as the model with random intercept and random slope, so I would not add the random slope to model 3 because it is more parsimonious and does not significantly affect model fit.
+
+## Question 2 (c)
+
+
+## Question 2 (d)
+
+
+\newpage
+# Question 3
+## Question 3 (a)
+```{r}
+rm(catheter)
+rm(intake)
+rm(model_1)
+rm(model_1_rand_slope)
+rm(model_2)
+rm(model_3)
+
+library(geepack)
+
+combined_dat <- combined_dat %>% 
+  select(subject, time, uti, age, gender, education, GROUP, second) %>% 
+  mutate(gender = ifelse(gender == "", NA, gender)) %>% 
+  na.omit()
+
+model_1 <- geeglm(uti ~ age + gender + education + GROUP,
+                  data = combined_dat,
+                  family = binomial(link = "logit"),
+                  id = subject,
+                  waves = time,
+                  corstr = "independence",
+                  scale.fix = TRUE)
+
+model_2 <- geeglm(uti ~ age + gender + education + GROUP + second,
+                  data = combined_dat,
+                  family = binomial(link = "logit"),
+                  id = subject,
+                  waves = time,
+                  corstr = "independence",
+                  scale.fix = TRUE)
+
+model_3 <- geeglm(uti ~ age + gender + education + GROUP * second,
+                  data = combined_dat,
+                  family = binomial(link = "logit"),
+                  id = subject,
+                  waves = time,
+                  corstr = "independence",
+                  scale.fix = TRUE)
+
+QIC(model_1)
+QIC(model_2)
+QIC(model_3)
+```
+
+The QICs of the 3 models are:
+
+* Model 1: 1089.7
+
+* Model 2: 1091.4
+
+* Model 3: 1089.7
+
+Models 1 and 3 have the same QIC, so I would prefer them over model 2. Between model 1 and 3, I would choose model 1 because it is more parsimonious.
+
+## Question 3 (b)
+```{r}
+model_3_cs <- geeglm(uti ~ age + gender + education + GROUP * second,
+                  data = combined_dat,
+                  family = binomial(link = "logit"),
+                  id = subject,
+                  waves = time,
+                  corstr = "exchangeable",
+                  scale.fix = TRUE)
+
+model_3_ar1 <- geeglm(uti ~ age + gender + education + GROUP * second,
+                  data = combined_dat,
+                  family = binomial(link = "logit"),
+                  id = subject,
+                  waves = time,
+                  corstr = "ar1",
+                  scale.fix = TRUE)
+
+QIC(model_3)
+QIC(model_3_cs)
+QIC(model_3_ar1)
+```
+
+The QICs of the 3 models are:
+
+* Independent working correlation: 1089.7
+
+* Compound symmetry working correlation: 1079.13
+
+* AR1 working correlation: 1079.12
+
+Model 3 with the AR1 working correlation has the smallest QIC, so I would prefer this model over the others.
+
+## Question 3 (c)
+
+
+## Question 4 (d)

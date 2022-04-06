@@ -133,7 +133,9 @@ pairs(cbind(time0, time3, time6, time9, time12),
 
 The above graph plots the scatterplots of the residuals and their correlations for the linear model in (c).
 
-As we can see, there is significant correlation among the residuals, ranging from 0.4 to 0.93. For example, the correlation of the residuals between time = 0 and time = 3 is 0.5, and the correlation of the residuals between time = 9 and time = 12 is 0.93.
+As we can see, there is substantial correlation among the residuals, ranging from 0.4 to 0.93. For example, the correlation of the residuals between time = 0 and time = 3 is 0.5, and the correlation of the residuals between time = 9 and time = 12 is 0.93.
+
+Additionally, we can see as more time passes between visits, the correlation among the residuals becomes smaller. 
 
 This indicates that the HAMD scores at different time points are correlated, which indicates that we must use statistical methods that account for non-independence of outcomes to assess the relationship between the treatment and outcome.
 

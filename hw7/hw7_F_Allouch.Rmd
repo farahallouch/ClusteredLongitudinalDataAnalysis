@@ -30,7 +30,9 @@ intake <- intake %>%
                                    uti == "Yes" ~ 1), # geeglm() needs outcome to be numeric, not factor
          ms = as.factor(case_when(ms == 1 ~ 1,
                                    ms %in% c(2:6) ~ 2,
-                                   ms == 7 ~ 3))) 
+                                   ms == 7 ~ 3))) %>% 
+  select(uti, age, gender, ms) %>% 
+  na.omit()
 
 model_1 <- glm(uti ~ age + gender + ms,
                data = intake,
@@ -68,14 +70,14 @@ The model with the smallest AIC is model 2; however, model 1 has a very similar 
 
 ## Question 1 (b)
 ```{r}
-box_tidwell <- car::boxTidwell(formula = uti ~ age,
-                               other.x = ~ gender + ms,
-                               data = intake)
+model_1_box_tidwell <- glm(uti ~ age *  I(log(age)) + gender + ms,
+                           data = intake,
+                           family = binomial(link = "logit"))
 
-print(box_tidwell)
+summary(model_1_box_tidwell)
 ```
 
-The p-value from the Box Tidwell test of model 1 produces a p-value of 0.49, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that the first order linear scale of age is suitable.
+We conduct a Box-Tidwell test of model 1 by adding an interaction term between age and log(age). The p-value for the interaction term is 0.57, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that the first order linear scale of age is suitable.
 
 ## Question 1 (c)
 ```{r}
@@ -92,7 +94,7 @@ The Hosmer-Lemeshow goodness of fit test produces a p-value of 0.89. This is gre
 # Question 2
 ## Question 2 (a)
 ```{r}
-rm(box_tidwell)
+rm(model_1_box_tidwell)
 rm(hoslem_test)
 rm(model_1)
 rm(model_2)
@@ -100,6 +102,8 @@ rm(model_3)
 rm(model_4)
 
 catheter <- read.csv("../hw5/catheter.csv")
+
+intake <- read.csv("../hw5/intake.csv")
 
 intake <- intake %>% 
   select(subject, age, education)
@@ -114,7 +118,9 @@ combined_dat <- combined_dat %>%
          GROUP = as.factor(GROUP),
          second = ifelse((time == 8 |
                             time == 10 |
-                            time == 12), 1, 0)) 
+                            time == 12), 1, 0)) %>% 
+  select(uti, age, gender, education, GROUP, second, subject, time) %>% 
+  na.omit()
 
 library(lme4)
 
@@ -151,25 +157,76 @@ model_3_rand_slope <- glmer(uti ~ age + gender + education + GROUP * second + (1
                             data = combined_dat,
                             family = binomial(link = "logit"))
 
-summary(model_3_rand_slope)
-
 anova(model_3, model_3_rand_slope)
 ```
 
 Comparing model 3 with random intercept and model 3 with random intercept and random slope on age produces a p-value of 0.84, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$. This suggests that the model with random intercept only fits the data just as well as the model with random intercept and random slope, so I would not add the random slope to model 3 because it is more parsimonious and does not significantly affect model fit.
 
 ## Question 2 (c)
+```{r}
+intake <- intake %>% 
+  mutate(id = 1:nrow(intake),
+         diff_b = rep(NA, nrow(intake)))
 
+combined_dat <- combined_dat %>% 
+  mutate(id = as.numeric(as.factor(subject)))
+
+x <- 1:nrow(intake)
+
+for (i in 1:nrow(intake)) {
+  dat <- combined_dat %>% 
+    filter(!(id == x[i]))
+  
+  looa <- glmer(uti ~ age + gender + education + GROUP + (1 | subject),
+                data = dat,
+                family = binomial(link = "logit"))
+  
+  beta_d <- fixef(model_1)[2] - fixef(looa)[2]
+  
+  intake <- intake %>% 
+    mutate(diff_b = ifelse(id == x[i], abs(beta_d), diff_b))
+}
+
+ggplot(data = intake, aes(x = id, y = diff_b)) +
+  geom_point() +
+  ggtitle("Influence plot") +
+  ylab("Absolute value of difference in beta age") +
+  xlab("Subject ID") +
+  theme_minimal()
+
+intake %>% 
+  select(subject, diff_b) %>% 
+  arrange(-diff_b) %>% 
+  head(5)
+```
+
+By conducting a leave-one-out analysis for each subject, we obtain diff_b, which is the difference in beta age of the beta in the full model and the beta in the model with 1 subject left out. 
+
+The subjects with the most influence on beta age are 4073, 5365, 1031, 2982, and 1040.
 
 ## Question 2 (d)
+```{r}
+combined_dat <- combined_dat %>% 
+  mutate(predicted = predict(model_1),
+         quantile = ntile(predicted, 10))
 
+hl_type_test <- glmer(uti ~ age + gender + education + GROUP + as.factor(quantile) + (1 | subject),
+                 data = combined_dat,
+                 family = binomial(link = "logit"))
+
+anova(hl_type_test)
+summary(hl_type_test)
+```
+
+We divide the sample into 10 groups according to the fitted linear predictors, then add an indicator for deciles based on predicted values to the model.
+
+As we can see, all the p-values for the indicators are substantially greater than 0.05, which does not give us sufficient evidence to reject $H_0$. This suggests that the model fits the data well.
 
 \newpage
 # Question 3
 ## Question 3 (a)
 ```{r}
 rm(catheter)
-rm(intake)
 rm(model_1)
 rm(model_1_rand_slope)
 rm(model_2)
@@ -178,7 +235,7 @@ rm(model_3)
 library(geepack)
 
 combined_dat <- combined_dat %>% 
-  select(subject, time, uti, age, gender, education, GROUP, second) %>% 
+  select(subject, time, uti, age, gender, education, GROUP, second, id) %>% 
   mutate(gender = ifelse(gender == "", NA, gender)) %>% 
   na.omit()
 
@@ -255,6 +312,65 @@ The QICs of the 3 models are:
 Model 3 with the AR1 working correlation has the smallest QIC, so I would prefer this model over the others.
 
 ## Question 3 (c)
+```{r}
+intake <- intake %>% 
+  mutate(diff_b = rep(NA, nrow(intake)))
 
+combined_dat <- combined_dat %>% 
+  mutate(id = as.numeric(as.factor(subject)))
 
-## Question 4 (d)
+for (i in 1:nrow(intake)) {
+  dat <- combined_dat %>% 
+    filter(!(id == x[i]))
+  
+  looa <- geeglm(uti ~ age + gender + education + GROUP * second,
+                  data = dat,
+                  family = binomial(link = "logit"),
+                  id = subject,
+                  waves = time,
+                  corstr = "ar1",
+                  scale.fix = TRUE)
+  
+  beta_d <- model_1$coefficients[2] - looa$coefficients[2]
+  
+  intake <- intake %>% 
+    mutate(diff_b = ifelse(id == x[i], abs(beta_d), diff_b))
+}
+
+ggplot(data = intake, aes(x = id, y = diff_b)) +
+  geom_point() +
+  ggtitle("Influence plot") +
+  ylab("Absolute value of difference in beta age") +
+  xlab("Subject ID") +
+  theme_minimal()
+
+intake %>% 
+  select(subject, diff_b) %>% 
+  arrange(-diff_b) %>% 
+  head(5)
+```
+
+By conducting a leave-one-out analysis for each subject, we obtain diff_b, which is the difference in beta age of the beta in the full model and the beta in the model with 1 subject left out. 
+
+The subjects with the most influence on beta age are 3966, 1031, 5027, 2914, and 2587.
+
+## Question 3 (d)
+```{r}
+combined_dat <- combined_dat %>% 
+  mutate(predicted = predict(model_1),
+         quantile = ntile(predicted, 10))
+
+hl_type_test <- geeglm(uti ~ age + gender + education + GROUP * second + as.factor(quantile),
+                  data = combined_dat,
+                  family = binomial(link = "logit"),
+                  id = subject,
+                  waves = time,
+                  corstr = "ar1",
+                  scale.fix = TRUE)
+
+anova(hl_type_test)
+```
+
+We divide the sample into 10 groups according to the fitted linear predictors, then add an indicator for deciles based on predicted values to the model.
+
+As we can see, the p-value for the type 3 test of the deciles is 0.02, which is less than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that the model does not fit the data well.

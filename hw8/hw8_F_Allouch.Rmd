@@ -1,0 +1,256 @@
+---
+title: "Clustered & Longitudinal Data Analysis HW 8"
+author: "Farah Allouch"
+date: "`r format(Sys.time(), ' %B %d, %Y')`"
+output: 
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE,
+                      message = FALSE)
+
+rm(list = ls())
+options(scipen = 999)
+
+library(tidyverse)
+```
+
+\newpage
+# Question 1
+## Question 1 (a)
+The missingness is only in the true disease status. Since this is only dependent on the results from the screening test, which is observed and never missing, the missing mechanism does satisfy the MAR assumption.
+
+## Question 1 (b)
+```{r}
+dat_1 <- data.frame(x = c(rep(1, 270), rep(1, 40), rep(1, 15), rep(1, 80), rep(1, 95), rep(0, 90), rep(0, 80), rep(0, 5), rep(0, 160), rep(0, 165)),
+                    t = c(rep(1, 270), rep(1, 40), rep(0, 15), rep(0, 80), rep(0, 95), rep(1, 90), rep(1, 80), rep(0, 5), rep(0, 160), rep(0, 165)), 
+                    d = c(rep(1, 270), rep(0, 40), rep(1, 15), rep(0, 80), rep(NA, 95), rep(1, 90), rep(0, 80), rep(1, 5), rep(0, 160), rep(NA, 165)))
+
+misty::na.test(dat_1)
+```
+
+Little's test for the MCAR assumption produces a p-value substantially < 0.05. This gives us sufficient evidence to reject $H_0$, which suggests that the MCAR assumption is not met in these data.
+
+## Question 1 (c)
+Since these data do not meet the MCAR assumption, we cannot only use the completely observed subjects to estimate the prevalence of disease. This would produce a biased estimate of prevalence.
+
+However, we can use the complete data to estimate the missing data using IPW or multiple imputation methods.
+
+## Question 1 (d)
+```{r}
+dat_1 <- dat_1 %>%
+  mutate(R = ifelse(!is.na(d), 1, 0))
+
+missing_glm_1 <- glm(R ~ x + t,
+                   data = dat_1,
+                   family = binomial(link = "logit"))
+
+phat_r <- predict(missing_glm_1, type = "response")
+w <- 1 / phat_r
+dat_1 <- cbind(dat_1, w)
+
+wglm_1 <- glm(d ~ x + t,
+              data = dat_1,
+              family = binomial(link = "logit"),
+              weights = dat_1$w)
+
+library(gtsummary)
+
+wglm_1 %>% 
+  tbl_regression(exponentiate = TRUE)
+```
+
+
+## Question 1 (e)
+
+
+\newpage
+# Question 2
+## Question 2 (a)
+```{r}
+r01 <- read.csv("../hw4/r01new.csv")
+
+r01 <- r01 %>% 
+  select(ID, group, hiv_0, hiv_3)
+
+mdf <- mi::missing_data.frame(r01[3:4])
+
+library(kableExtra)
+
+kable(table(mdf@patterns)) %>% 
+  kable_styling()
+```
+
+As we can see, 534 participants have non-missing in hiv_0 and hiv_3, and 83 participants have missing only in hiv_3. This confirms that the data follow a monotone missing data pattern.
+
+Since the missingness in hiv_3 depends on hiv_0 and treatment, we cannot assume MCAR. To confirm this, we run Little's test.
+
+```{r}
+misty::na.test(r01)
+```
+
+Little's test gives a p-value of 0.06, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that the missingness does follow MCAR. However, Little's test cannot confirm MCAR - it can only reject MCAR. Since we know that the missingness is dependent on hiv_0 and treatment, we know we cannot assume MCAR.
+
+## Question 2 (b)
+```{r}
+library(mice)
+
+set.seed(1234)
+
+imp <- mice(r01, maxit = 0)
+
+predM <- imp$predictorMatrix
+predM[, c("ID")] <- 0
+
+meth <- imp$method
+
+imp2 <- mice(r01,
+             m = 20, 
+             predictorMatrix = predM, 
+             method = meth, 
+             print =  FALSE)
+
+r01imp_long <- complete(imp2,
+                        action = "long",
+                        include = TRUE)
+r01imp_long_mids <- as.mids(r01imp_long)
+
+fitimp <- with(r01imp_long_mids,
+               lm(hiv_3 ~ hiv_0 * group))
+
+summary(pool(fitimp))
+```
+
+Since we assume the data is MAR, we cannot conduct a complete-case analysis as this will lead to a biased estimate. Therefore, we multiply imputed the data using 20 datasets, which led to the results above.
+
+As we can see, the p-value for group is substantially < 0.05, which gives us sufficient evidence to reject $H_0$. This suggests that there is a significant intervention effect on hiv_3. Furthermore, the interaction term between hiv_1 and group is significant on hiv_3.
+
+## Question 2 (c)
+```{r}
+library(lme4)
+
+r01imp_long2 <- complete(imp2,
+                         action = "long",
+                         include = FALSE)
+
+r01_long <- pivot_longer(r01imp_long2,
+                         cols = c(hiv_0, hiv_3),
+                         names_to = "time",
+                         names_prefix = "hiv_",
+                         values_to = "hiv")
+
+r01_long <- r01_long %>% 
+  mutate(time = as.factor(time))
+
+beta <- matrix(nrow = 20,
+               ncol = 4)
+
+vbeta <- beta;
+for(i in 1:20){
+  idata <- r01_long[r01_long$.imp == i, ]
+  fit <- lmer(hiv ~ time * group + (1 | ID),
+               data = idata)
+  beta[i, ] <- fixef(fit)
+  vbeta[i, ] <- sqrt(diag(vcov(fit)))
+}
+
+v <- apply(beta, 2, var) * (1 + 1/20) + apply(vbeta^2, 2, mean)
+p <- apply(beta, 2, mean)
+
+results <- data.frame(estimates = c(p/sqrt(v)),
+                      p_values = c(pnorm(p/sqrt(v), lower.tail = FALSE)))
+
+rownames(results) <- c("Intercept", "time", "group", "ixn")
+
+kable(results) %>% 
+  kable_styling()
+```
+
+Since we assume the data is MAR, we cannot conduct a complete-case analysis as this will lead to a biased estimate. Therefore, we multiply imputed the data using 20 datasets, which led to the results above.
+
+As we can see, the p-value for group is > 0.05, which does not give us sufficient evidence to reject $H_0$. This suggests that there is not a significant intervention effect on hiv_3.
+
+\newpage
+# Question 3
+## Question 3 (a)
+Again, since the missingness in hiv_3 depends on hiv_0 and treatment, we cannot assume MCAR. To confirm this, we run Little's test.
+
+```{r}
+misty::na.test(r01)
+```
+
+Little's test gives a p-value of 0.06, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that the missingness does follow MCAR. However, Little's test cannot confirm MCAR - it can only reject MCAR. Since we know that the missingness is dependent on hiv_0 and treatment, we know we cannot assume MCAR.
+
+## Question 3 (b)
+```{r}
+r01_long_real <- pivot_longer(r01,
+                              cols = c(hiv_0, hiv_3),
+                              names_to = "time",
+                              names_prefix = "hiv_",
+                              values_to = "hiv")
+
+r01_long_real <- r01_long_real %>% 
+  mutate(R = ifelse(!is.na(hiv), 1, 0)) 
+
+missing_glm <- glm(R ~ group * time,
+                   data = r01_long_real,
+                   family = binomial(link = "logit"))
+
+phat_r <- predict(missing_glm, type = "response")
+
+w <- 1 / phat_r
+
+r01_long_real <- cbind(r01_long_real, w)
+
+library(geepack)
+
+wgee <- geeglm(hiv ~ group * time,
+             data = r01_long_real,
+             id = ID,
+             waves = time,
+             family = gaussian(link = "identity"),
+             weights = w,
+             corstr = "independence",
+             scale.fix = TRUE)
+
+summary(wgee)
+```
+
+As we can see, the p-value for group is > 0.05, which does not give us sufficient evidence to reject $H_0$. This suggests that there is not a significant intervention effect on hiv_3.
+
+## Question 3 (c)
+```{r}
+# This is code for running a geeglm on longitudinal data with missing outcome
+# beta <- matrix(nrow = 20,
+#                ncol = 4)
+# 
+# vbeta <- beta;
+# for(i in 1:20){
+#   idata <- r01_long[r01_long$.imp == i, ]
+#   fit <- geeglm(hiv ~ group * time,
+#              data = idata,
+#              id = ID,
+#              waves = time,
+#              family = gaussian(link = "identity"),
+#              corstr = "independence",
+#              scale.fix = TRUE)
+#   beta[i, ] <- fit$geese$beta
+#   vbeta[i, ] <- sqrt(diag(fit$geese$vbeta))
+# }
+# 
+# v <- apply(beta, 2, var) * (1 + 1/20) + apply(vbeta^2, 2, mean)
+# p <- apply(beta, 2, mean)
+# 
+# p/sqrt(v)
+# pnorm(p/sqrt(v), lower.tail = FALSE)
+
+summary(pool(fitimp))
+```
+
+As we can see, the p-value for group is substantially < 0.05, which gives us sufficient evidence to reject $H_0$. This suggests that there is a significant intervention effect on hiv_3. Furthermore, the interaction term between hiv_1 and group is significant on hiv_3.
+
+## Question 3 (d)
+The results from 2 (c) and 3 (b) are similar in that they give an insignificant p-value for group, using longitudinal data. However, the results from 3 (c) give a p-value that is substantially < 0.05.

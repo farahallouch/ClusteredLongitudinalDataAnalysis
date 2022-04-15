@@ -40,11 +40,11 @@ Since these data do not meet the MCAR assumption, we cannot only use the complet
 However, we can use the complete data to estimate the missing data using IPW or multiple imputation methods.
 
 ## Question 1 (d)
-```{r}
+```{r, echo = TRUE}
 dat_1 <- dat_1 %>%
   mutate(R = ifelse(!is.na(d), 1, 0))
 
-missing_glm_1 <- glm(R ~ x + t,
+missing_glm_1 <- glm(R ~ x,
                    data = dat_1,
                    family = binomial(link = "logit"))
 
@@ -52,7 +52,7 @@ phat_r <- predict(missing_glm_1, type = "response")
 w <- 1 / phat_r
 dat_1 <- cbind(dat_1, w)
 
-wglm_1 <- glm(d ~ x + t,
+wglm_1 <- glm(d ~ x,
               data = dat_1,
               family = binomial(link = "logit"),
               weights = dat_1$w)
@@ -65,7 +65,36 @@ wglm_1 %>%
 
 
 ## Question 1 (e)
+The mean score method estimates the distribution of the outcome among the missing counts based on the distribution of the outcome in the observed counts.
 
+For X = 1 and T = 0, D = 1 : D = 0 is 15:80.
+
+For X = 0 and T = 0, D = 1 : D = 0 is 5:160.
+
+```{r}
+df <- data.frame(d = c(300, 100),
+                 not_d = c(200, 400))
+
+row.names(df) <- c("X = 1", "X = 0")
+colnames(df) <- c("D = 1", "D = 0")
+
+library(kableExtra)
+
+kable(df) %>% 
+  kable_styling(latex_options = "HOLD_position")
+```
+
+where for
+
+* X = 1 and D = 1, there are 15 additional cases estimated by mean score method.
+
+* X = 1 and D = 0, there are 80 additional controls estimated by mean score method.
+
+* X = 0 and D = 1, there are 5 additional cases estimated by mean score method.
+
+* X = 0 and D = 0, there are 160 additional controls estimated by mean score method.
+
+$\text{OR} = \frac{300/100}{200/400} = 6$
 
 \newpage
 # Question 2
@@ -78,10 +107,8 @@ r01 <- r01 %>%
 
 mdf <- mi::missing_data.frame(r01[3:4])
 
-library(kableExtra)
-
 kable(table(mdf@patterns)) %>% 
-  kable_styling()
+  kable_styling(latex_options = "HOLD_position")
 ```
 
 As we can see, 534 participants have non-missing in hiv_0 and hiv_3, and 83 participants have missing only in hiv_3. This confirms that the data follow a monotone missing data pattern.
@@ -166,7 +193,7 @@ results <- data.frame(estimates = c(p/sqrt(v)),
 rownames(results) <- c("Intercept", "time", "group", "ixn")
 
 kable(results) %>% 
-  kable_styling()
+  kable_styling(latex_options = "HOLD_position")
 ```
 
 Since we assume the data is MAR, we cannot conduct a complete-case analysis as this will lead to a biased estimate. Therefore, we multiply imputed the data using 20 datasets, which led to the results above.

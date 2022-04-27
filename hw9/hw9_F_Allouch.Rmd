@@ -1,0 +1,88 @@
+---
+title: "Clustered & Longitudinal Data Analysis HW 9"
+author: "Farah Allouch"
+date: "`r format(Sys.time(), ' %B %d, %Y')`"
+output: 
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE,
+                      message = FALSE)
+
+rm(list = ls())
+options(scipen = 999)
+
+library(tidyverse)
+```
+
+\newpage
+# Question 1
+## Question 1 (a)
+```{r}
+coach <- haven::read_sas("coach.sas7bdat")
+
+coach_no_dups <- coach %>% 
+  distinct(ID, HDRS_Baseline, Village, Group) %>% 
+  na.omit
+
+library(nlme)
+
+lmm_1a <- lme(HDRS_Baseline ~ 1,
+              data = coach_no_dups,
+              random = ~ 1 | Village)
+
+summary(lmm_1a)
+```
+
+$$\text{ICC} = \frac{\widehat{\nu^2}}{\widehat{\nu^2} + \widehat{\sigma^2}} = \frac{\text{(SD of intercept)}^2}{\text{(SD of intercept)}^2 + \text{(SD of residuals)}^2} = \frac{(1.337672)^2}{(1.337672)^2 + (3.874706)^2} = 0.106$$
+
+## Question 1 (b)
+```{r}
+lmm_1b <- lme(HDRS_Baseline ~ Group,
+              data = coach_no_dups,
+              random = ~ 1 | Village)
+
+summary(lmm_1b)
+```
+
+Based on the output above, there are no significant differences in the baseline Ham-D scores between the two groups. 
+
+I handled the correlation among subjects from the same villages by adding a random intercept by village in the LMM model.
+
+\newpage
+# Question 2
+## Question 2 (a)
+```{r}
+coach_wide <- pivot_wider(coach,
+                     id_cols = c(ID, Group, Village),
+                     names_from = time,
+                     values_from = HDRS,
+                     names_prefix = "HDRS_")
+
+hamd_baseline <- coach %>% 
+  select(ID, Village, HDRS_Baseline) %>% 
+  distinct()
+
+coach_wide <- full_join(coach_wide, hamd_baseline,
+                        by = c("ID", "Village"))
+
+coach_wide <- coach_wide %>% 
+  rename(HDRS_0 = HDRS_Baseline)
+
+coach_long <- pivot_longer(coach_wide,
+                           cols = 4:8,
+                           names_to = "time",
+                           names_prefix = "HDRS_",
+                           values_to = "HRDS")
+
+library(lme4)
+
+lmm_2a <- lmer(HRDS ~ Group + (1 | Village) + (1 | ID),
+               data = coach_long)
+
+summary(lmm_2a)
+```
+

@@ -57,10 +57,10 @@ I handled the correlation among subjects from the same villages by adding a rand
 ## Question 2 (a)
 ```{r}
 coach_wide <- pivot_wider(coach,
-                     id_cols = c(ID, Group, Village),
-                     names_from = time,
-                     values_from = HDRS,
-                     names_prefix = "HDRS_")
+                          id_cols = c(ID, Group, Village),
+                          names_from = time,
+                          values_from = HDRS,
+                          names_prefix = "HDRS_")
 
 hamd_baseline <- coach %>% 
   select(ID, Village, HDRS_Baseline) %>% 
@@ -78,11 +78,71 @@ coach_long <- pivot_longer(coach_wide,
                            names_prefix = "HDRS_",
                            values_to = "HRDS")
 
-library(lme4)
+coach_long_cau <- coach_long %>% 
+  filter(Group == "CAU")
 
-lmm_2a <- lmer(HRDS ~ Group + (1 | Village) + (1 | ID),
-               data = coach_long)
+library(lme4)
+library(lmerTest)
+
+lmm_2a <- lmer(HRDS ~ as.factor(time) + (1 | Village) + (1 | ID),
+               data = coach_long_cau)
 
 summary(lmm_2a)
 ```
 
+$$\text{ICC} = \frac{\widehat{\nu^2} + \widehat{\tau^2}}{\widehat{\nu^2} + \widehat{\tau^2} + \widehat{\sigma^2}} = \frac{\text{(Var of ID intercept)} + \text{(Var of Village intercept)}}{\text{(Var of ID intercept)} + \text{(Var of Village intercept)} + \text{(Var of residuals)}} = \frac{(8.230) + (2.273)}{(8.230) + (2.273) + (9.931)} = 0.514$$
+
+## Question 2 (b)
+$$\text{ICC} = \frac{\widehat{\tau^2}}{\widehat{\nu^2} + \widehat{\tau^2} + \widehat{\sigma^2}} = \frac{\text{(Var of Village intercept)}}{\text{(Var of ID intercept)} + \text{(Var of Village intercept)} + \text{(Var of residuals)}} = \frac{(2.273)}{(8.230) + (2.273) + (9.931)} = 0.111$$
+
+## Question 2 (c)
+```{r}
+anova(lmm_2a)
+# pf(154.55,
+#    df1 = 4, # k - 1; number of groups - 1
+#    df2 = 5438, # N - k ; sum of number of observations in each group - number of groups
+#    lower.tail = FALSE) 
+```
+
+As we can see, the ANOVA test for time produces a p-value < 0.0001. This gives us sufficient evidence to reject $H_0$, which suggests that the correlation between any two repeated measures are not the same. So, the assumption may not be reasonable.
+
+\newpage
+# Question 3
+## Question 3 (a)
+```{r}
+coach <- coach %>% 
+  group_by(Village) %>% 
+  mutate(HM = mean(HDRS_Baseline)) %>% 
+  ungroup() %>% 
+  mutate(HS = HDRS_Baseline - HM)
+
+lmm_3a <- lmer(HDRS ~ Group + as.factor(time) + Group*as.factor(time) + HM + HM*Group + HM*as.factor(time) + HS + HS*Group + HS*as.factor(time) + (1 | Village) + (1 | ID),
+               data = coach)
+
+summary(lmm_3a)
+anova(lmm_3a)
+```
+
+We run a manual backward elimination strategy by identifying coefficients with p-values > 0.05 or > 0.10. The only coefficient with p-value > 0.05 or > 0.10 is the interaction term between group and HM. We remove it from the model and run it again.
+
+```{r}
+lmm_3a <- lmer(HDRS ~ Group + as.factor(time) + Group*as.factor(time) + HM + HM*as.factor(time) + HS + HS*Group + HS*as.factor(time) + (1 | Village) + (1 | ID),
+               data = coach)
+
+summary(lmm_3a)
+anova(lmm_3a)
+```
+
+After removing the interaction term between group and HM, there are no longer any coefficients with p-values > 0.05 or > 0.10, so we stop here and consider this the final model from the backward selection method.
+
+## Question 3 (b)
+$\tau^2 = \text{(Var of Village intercept)} = 2.056$
+
+$\nu^2 = \text{(Var of ID intercept)} = 6.386$
+
+$\sigma^2 = \text{(Var of residual)} = 9.761$
+
+## Question 3 (c)
+Based on the final model in 3 (a), we can conclude that the treatment is effective.
+
+We know this because the p-value for Group is substantially < 0.05, and the p-values for the coefficients of the interaction between group and each time point are also < 0.05. This gives us sufficient evidence to reject $H_0$, which suggests that the treatment is effective.

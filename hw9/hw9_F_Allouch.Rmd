@@ -84,25 +84,39 @@ coach_long_cau <- coach_long %>%
 library(lme4)
 library(lmerTest)
 
-lmm_2a <- lmer(HRDS ~ as.factor(time) + (1 | Village) + (1 | ID),
+lmm_2a <- lmer(HRDS ~ 1 + (1 | Village) + (1 | ID),
                data = coach_long_cau)
 
 summary(lmm_2a)
 ```
-
-$$\text{ICC} = \frac{\widehat{\nu^2} + \widehat{\tau^2}}{\widehat{\nu^2} + \widehat{\tau^2} + \widehat{\sigma^2}} = \frac{\text{(Var of ID intercept)} + \text{(Var of Village intercept)}}{\text{(Var of ID intercept)} + \text{(Var of Village intercept)} + \text{(Var of residuals)}} = \frac{(8.230) + (2.273)}{(8.230) + (2.273) + (9.931)} = 0.514$$
+$$
+\begin{split}
+\text{ICC} = \frac{\widehat{\nu^2} + \widehat{\tau^2}}{\widehat{\nu^2} + \widehat{\tau^2} + \widehat{\sigma^2}} = \frac{\text{(Var of ID intercept)} + \text{(Var of Village intercept)}}{\text{(Var of ID intercept)} + \text{(Var of Village intercept)} + \text{(Var of residuals)}} = \\
+\frac{(8.125) + (2.268)}{(8.125) + (2.268) + (11.301)} = 0.479
+\end{split}
+$$
 
 ## Question 2 (b)
-$$\text{ICC} = \frac{\widehat{\tau^2}}{\widehat{\nu^2} + \widehat{\tau^2} + \widehat{\sigma^2}} = \frac{\text{(Var of Village intercept)}}{\text{(Var of ID intercept)} + \text{(Var of Village intercept)} + \text{(Var of residuals)}} = \frac{(2.273)}{(8.230) + (2.273) + (9.931)} = 0.111$$
+$$
+\begin{split}
+\text{ICC} = \frac{\widehat{\tau^2}}{\widehat{\nu^2} + \widehat{\tau^2} + \widehat{\sigma^2}} = \frac{\text{(Var of Village intercept)}}{\text{(Var of ID intercept)} + \text{(Var of Village intercept)} + \text{(Var of residuals)}} = \\
+\frac{(2.268)}{(8.125) + (2.268) + (11.301)} = 0.105
+\end{split}
+$$
 
 ## Question 2 (c)
 ```{r}
-anova(lmm_2a)
+lmm_2c <- lmer(HRDS ~ as.factor(time) + (1 | Village) + (1 | ID),
+               data = coach_long_cau)
+
+anova(lmm_2c)
 # pf(154.55,
 #    df1 = 4, # k - 1; number of groups - 1
 #    df2 = 5438, # N - k ; sum of number of observations in each group - number of groups
 #    lower.tail = FALSE) 
 ```
+
+To examine the correlation between any 2 repeated measures is the same, we add time as a factor to the model in 2 (a). 
 
 As we can see, the ANOVA test for time produces a p-value < 0.0001. This gives us sufficient evidence to reject $H_0$, which suggests that the correlation between any two repeated measures are not the same. So, the assumption may not be reasonable.
 

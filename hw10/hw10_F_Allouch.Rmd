@@ -1,0 +1,53 @@
+---
+title: "Clustered & Longitudinal Data Analysis HW 10"
+author: "Farah Allouch"
+date: "`r format(Sys.time(), ' %B %d, %Y')`"
+output: 
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE,
+                      message = FALSE)
+
+rm(list = ls())
+options(scipen = 999)
+
+library(tidyverse)
+```
+
+\newpage
+# Question 1
+Assuming a balanced study with effect size $\delta = 0.5$,
+
+$\text{N}_C = \text{N}_I = \frac{2 \times (\text{Z}_{1 - \alpha} + \text{Z}_{1 - \beta})^2}{\delta^2}$
+
+where $\text{Z}_{1 - \alpha} = 1.96$ is the Z score for a two-sided $\alpha = 0.05$
+
+and $\text{Z}_{1 - \beta} = 1.28$ is the Z score for a two-sided $\beta = 0.10$
+
+$\text{N}_C = \text{N}_I = \frac{2 \times (\text{Z}_{1 - \alpha} + \text{Z}_{1 - \beta})^2}{\delta^2} = \frac{2 \times (1.96 + 1.28)^2}{(0.5)^2} = 84.06$
+
+We round 84.06 up to 85, which gives us 85 subjects in each arm (170 subjects total) to achieve 90% power with type I error = 0.05.
+
+\newpage
+# Question 2
+Assuming a balanced study with effect size $\delta = 0.5$,
+
+$\text{N} = 4 \times \frac{1 + (m - 1) \times \rho}{m} \times (\frac{\text{Z}_{1 - \alpha} + \text{Z}_{1 - \beta}}{\delta})$
+
+where $\text{Z}_{1 - \alpha} = 1.96$ is the Z score for a two-sided $\alpha = 0.05$
+
+and $\text{Z}_{1 - \beta} = 1.28$ is the Z score for a two-sided $\beta = 0.10$
+
+and $\rho$ is the ICC = 0.1
+
+and, since we have at most 80 doctors who can be randomized into the study, N = 80.
+
+We solve for m, the number of subjects in each cluster.
+
+$\text{N} = 4 \times \frac{1 + (m - 1) \times \rho}{m} \times (\frac{\text{Z}_{1 - \alpha} + \text{Z}_{1 - \beta}}{\delta}) = 4 \times \frac{1 + (m - 1) \times 0.1}{m} \times (\frac{1.96 + 1.28}{0.5}) => m = 2.39$
+
+We round 2.39 up to 3, which gives 3 subjects per doctor. To get the total number of subjects to be recruited, $N \times m = 80 \times 3 = 240$. So, we randomize 40 doctors and 3 patients per doctor to each arm.

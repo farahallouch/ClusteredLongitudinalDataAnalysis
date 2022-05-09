@@ -1,0 +1,227 @@
+---
+title: "Clustered & Longitudinal Data Analysis Final"
+author: "Farah Allouch"
+date: "`r format(Sys.time(), ' %B %d, %Y')`"
+output: 
+  pdf_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE,
+                      message = FALSE)
+
+rm(list = ls())
+options(scipen = 999)
+
+library(tidyverse)
+```
+
+\newpage
+# Question 1
+## Question 1 (a)
+```{r}
+final <- haven::read_sas("final.sas7bdat")
+
+final <- final %>% 
+  select(group, age, sex, edu, marriage, CIRS, HAMD_0, HAMD_3, HAMD_6, HAMD_9, HAMD_12) %>% 
+  mutate(group = factor(group,
+                        levels = c(2, 1)),
+         id = factor(1:nrow(final)),
+         sex = factor(sex),
+         marriage = factor(marriage)) 
+
+final_long_nobase <- pivot_longer(data = final,
+                                  cols = c(HAMD_3, HAMD_6, HAMD_9, HAMD_12),
+                                  names_to = "time",
+                                  names_prefix = "HAMD_",
+                                  values_to = "HAMD")
+
+final_long_nobase <- final_long_nobase %>% 
+  mutate(time = as.numeric(time))
+
+library(geepack)
+
+gee_1a1 <- geeglm(HAMD ~ group + time + age + sex + marriage + edu + HAMD_0 + CIRS,
+                 data = final_long_nobase,
+                 id = id,
+                 waves = time,
+                 family = gaussian,
+                 corstr = "exchangeable",
+                 scale.fix = TRUE)
+
+anova(gee_1a1)
+```
+
+We run the model with group, time, age, sex, marriage, education, baseline HAMD, and CIRS with no interactions and get the results above.
+
+Using p = 0.15 as the threshold, we identify sex and education as the main effects with p-values > 0.15. Since the p-value for education (0.778) is greater than that of sex (0.348), we remove education first.
+
+```{r}
+gee_1a2 <- geeglm(HAMD ~ group + time + age + sex + marriage + HAMD_0 + CIRS,
+                 data = final_long_nobase,
+                 id = id,
+                 waves = time,
+                 family = gaussian,
+                 corstr = "exchangeable",
+                 scale.fix = TRUE)
+
+anova(gee_1a2)
+```
+
+We rerun the model without education and get the results above.
+
+Sex is the only variable with p > 0.15, so we remove that next.
+
+```{r}
+gee_1a3 <- geeglm(HAMD ~ group + time + age + marriage + HAMD_0 + CIRS,
+                 data = final_long_nobase,
+                 id = id,
+                 waves = time,
+                 family = gaussian,
+                 corstr = "exchangeable",
+                 scale.fix = TRUE)
+
+anova(gee_1a3)
+```
+
+We rerun the model without sex and get the results above.
+
+There are no more variables with p > 0.15, so we stop here and consider this our final model from the backward selection method.
+
+## Question 1 (b)
+```{r}
+gee_1b_1 <- geeglm(HAMD ~ group + time + age + marriage + HAMD_0 + CIRS,
+                 data = final_long_nobase,
+                 id = id,
+                 waves = time,
+                 family = gaussian,
+                 corstr = "exchangeable",
+                 scale.fix = TRUE)
+
+gee_1b_2 <- geeglm(HAMD ~ group + time + age + marriage + HAMD_0 + I(CIRS)^2,
+                 data = final_long_nobase,
+                 id = id,
+                 waves = time,
+                 family = gaussian,
+                 corstr = "exchangeable",
+                 scale.fix = TRUE)
+
+gee_1b_3 <- geeglm(HAMD ~ group + time + age + marriage + HAMD_0 + I(sqrt(CIRS)),
+                 data = final_long_nobase,
+                 id = id,
+                 waves = time,
+                 family = gaussian,
+                 corstr = "exchangeable",
+                 scale.fix = TRUE)
+
+QIC(gee_1b_1)
+QIC(gee_1b_2)
+QIC(gee_1b_3)
+```
+
+The QICs of the 3 models are:
+
+* CIRS: 12262.83
+
+* $\text{CIRS}^2$ : 12262.83
+
+* $\sqrt{\text{CIRS}}$ : 12314.81
+
+The model with the lowest QIC has CIRS itself, so I would choose this scale for CIRS.
+
+## Question 1 (c)
+```{r}
+# it's not letting me run it with group * marriage
+gee_1c1 <- geeglm(HAMD ~ group * time + group * age + group * HAMD_0 + group * CIRS,
+                 data = final_long_nobase,
+                 id = id,
+                 waves = time,
+                 family = gaussian,
+                 corstr = "exchangeable",
+                 scale.fix = TRUE)
+
+anova(gee_1c1)
+```
+
+We run the model with two-way interactions between group and time, age, baseline HAMD, and CIRS and get the results above.
+
+Using p = 0.05 as the threshold, we identify group:time and group:age as the interaction terms with p-values > 0.05. Since the p-value for group:age (0.373) is greater than that of group:time (0.235), we remove group:age first.
+
+```{r}
+gee_1c2 <- geeglm(HAMD ~ group * time + age + group * HAMD_0 + group * CIRS,
+                 data = final_long_nobase,
+                 id = id,
+                 waves = time,
+                 family = gaussian,
+                 corstr = "exchangeable",
+                 scale.fix = TRUE)
+
+anova(gee_1c2)
+```
+
+We rerun the model without group:age and get the results above.
+
+group:time is the only variable with p > 0.05, so we remove that next.
+
+```{r}
+gee_1c3 <- geeglm(HAMD ~ time + age + group * HAMD_0 + group * CIRS,
+                 data = final_long_nobase,
+                 id = id,
+                 waves = time,
+                 family = gaussian,
+                 corstr = "exchangeable",
+                 scale.fix = TRUE)
+
+anova(gee_1c3)
+```
+
+There are no more variables with p > 0.05, so we stop here and consider this our final model from the backward selection method.
+
+## Question 1 (d)
+```{r}
+gee_1d1 <- geeglm(HAMD ~ time + age + group * HAMD_0 + group * CIRS,
+                 data = final_long_nobase,
+                 id = id,
+                 waves = time,
+                 family = gaussian,
+                 corstr = "exchangeable",
+                 scale.fix = TRUE)
+
+gee_1d2 <- geeglm(HAMD ~ time + age + group * HAMD_0 + group * CIRS,
+                 data = final_long_nobase,
+                 id = id,
+                 waves = time,
+                 family = gaussian,
+                 corstr = "independence",
+                 scale.fix = TRUE)
+
+gee_1d3 <- geeglm(HAMD ~ time + age + group * HAMD_0 + group * CIRS,
+                 data = final_long_nobase,
+                 id = id,
+                 waves = time,
+                 family = gaussian,
+                 corstr = "ar1",
+                 scale.fix = TRUE)
+
+QIC(gee_1d1)
+QIC(gee_1d2)
+QIC(gee_1d3)
+```
+
+I can't run geeglm() with unstructured correlation structure to run in R. Everytime I try to, R crashes. Here is a quote from the geeglm() manual - Warning: Use "unstructured" correlation structure only with great care. (It may cause R to crash).
+
+The QICs of the 3 models are:
+
+* Exchangeable: 11251.46
+
+* Independent : 11243.00
+
+* Autoregressibe : 11252.63
+
+The model with the lowest QIC has independent correlation structure, so I would choose this model.
+
+\newpage
+# Question 2
+## Question 2 (a)

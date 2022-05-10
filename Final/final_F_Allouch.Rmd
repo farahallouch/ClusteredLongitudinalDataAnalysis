@@ -129,7 +129,7 @@ The QICs of the 3 models are:
 
 * $\sqrt{\text{CIRS}}$ : 12314.81
 
-The model with the lowest QIC has CIRS itself, so I would choose this scale for CIRS.
+The model with the lowest QIC has CIRS itself or $\text{CIRS}^2$ . I would choose the linear scale of CIRS because it is more interpretable.
 
 ## Question 1 (c)
 ```{r}
@@ -144,6 +144,8 @@ gee_1c1 <- geeglm(HAMD ~ group * time + group * age + group * HAMD_0 + group * C
 
 anova(gee_1c1)
 ```
+
+Note: I could not run the model with group * marriage. I spoke to Dr. Tang about this, and he told me to remove group * marriage from the model.
 
 We run the model with two-way interactions between group and time, age, baseline HAMD, and CIRS and get the results above.
 
@@ -225,3 +227,73 @@ The model with the lowest QIC has independent correlation structure, so I would 
 \newpage
 # Question 2
 ## Question 2 (a)
+```{r}
+rm(gee_1a1)
+rm(gee_1a2)
+rm(gee_1a3)
+rm(gee_1b_1)
+rm(gee_1b_2)
+rm(gee_1b_3)
+rm(gee_1c1)
+rm(gee_1c2)
+rm(gee_1c3)
+rm(gee_1d1)
+rm(gee_1d2)
+rm(gee_1d3)
+
+final <- as.data.frame(final)
+
+mdf <- mi::missing_data.frame(final[7:11])
+
+library(kableExtra)
+
+kable(table(mdf@patterns)) %>% 
+  kable_styling(latex_options = "HOLD_position")
+```
+
+As we can see, 214 participants have non-missing in all HAMD measurements, 9 have missing in HAMD_12 only, 16 have missing in HAMD_9 and HAMD_12, and 40 have missing in HAMD_6, HAMD_9, and HAMD_12. This confirms that the data follow a monotone missing data pattern.
+
+## Question 2 (b)
+```{r}
+final_long_nobase <- final_long_nobase %>% 
+  mutate(R = ifelse(!is.na(HAMD), 1, 0)) 
+
+missing_glm <- glm(R ~ group + HAMD_0 + CIRS,
+                   data = final_long_nobase,
+                   family = binomial(link = "logit"))
+
+phat_r <- predict(missing_glm, type = "response")
+
+w <- 1 / phat_r
+
+final_long_nobase <- cbind(final_long_nobase, w)
+
+gee_2b <- geeglm(HAMD ~ group * HAMD_0 + time + age + group * CIRS,
+                 data = final_long_nobase,
+                 id = id,
+                 waves = time,
+                 family = gaussian,
+                 weights = w,
+                 corstr = "independence",
+                 scale.fix = TRUE)
+
+summary(gee_2b)
+```
+
+Using IPW approach for missing data, the p-value associated with treatment is 0.058, which is greater than our cutoff of 0.05. This does not give us sufficient evidence to reject $H_0$, which suggests that treatment is not associated with HAMD at the 5% significance level.
+
+## Question 2 (c)
+```{r}
+summary(missing_glm)
+```
+
+The above output is from the model with an indicator for non-missing HAMD as the outcome. As we can see, treatment and baseline HAMD are significantly associated with missingness, thus the MCAR assumption, which states that the missing values do not depend on any observed or unobserved variables, is not met. 
+
+```{r}
+final %>% 
+  select(HAMD_0, HAMD_3, HAMD_6, HAMD_9, HAMD_12) %>% 
+  misty::na.test()
+```
+
+To further confirm this, we run Little's test for MCAR above. Little's test gives a p-value of 0.01, which is less than our cutoff of 0.05. This gives us sufficient evidence to reject $H_0$, which further suggests that the missingness does not follow MCAR.
+
